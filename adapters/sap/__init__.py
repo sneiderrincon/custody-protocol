@@ -1,0 +1,2 @@
+"""SAP adapter conformance placeholder."""
+

@@ -1,0 +1,534 @@
+{
+  "components": {
+    "schemas": {
+      "AssertionPayload": {
+        "additionalProperties": false,
+        "description": "Opaque immutable metadata for an event type.\n\nThe kernel accepts structured metadata but never derives truth from arbitrary adapter\nfields. Domain rules must use explicit event vocabulary and provenance.",
+        "properties": {
+          "attributes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PayloadAttribute"
+            },
+            "title": "Attributes",
+            "type": "array"
+          }
+        },
+        "title": "AssertionPayload",
+        "type": "object"
+      },
+      "AssertionResponse": {
+        "additionalProperties": false,
+        "description": "API response for a committed custody assertion.",
+        "properties": {
+          "assertion": {
+            "$ref": "#/components/schemas/CommittedCustodyAssertion"
+          }
+        },
+        "required": [
+          "assertion"
+        ],
+        "title": "AssertionResponse",
+        "type": "object"
+      },
+      "CommittedCustodyAssertion": {
+        "additionalProperties": false,
+        "description": "Immutable custody assertion appended to the event store.",
+        "properties": {
+          "claim_id": {
+            "format": "uuid",
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "event_type": {
+            "$ref": "#/components/schemas/CustodyEventType"
+          },
+          "global_position": {
+            "minimum": 1.0,
+            "title": "Global Position",
+            "type": "integer"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/AssertionPayload"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "stream_version": {
+            "minimum": 1.0,
+            "title": "Stream Version",
+            "type": "integer"
+          },
+          "unit_id": {
+            "minLength": 1,
+            "title": "Unit Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "claim_id",
+          "unit_id",
+          "event_type",
+          "occurred_at",
+          "provenance",
+          "global_position",
+          "stream_version"
+        ],
+        "title": "CommittedCustodyAssertion",
+        "type": "object"
+      },
+      "CustodyEventType": {
+        "description": "Closed event set for physical medical-device custody facts.",
+        "enum": [
+          "Fabricado",
+          "Enviado",
+          "Recibido",
+          "Despachado",
+          "UsadoImplantado",
+          "Devuelto",
+          "DadoDeBaja",
+          "EstadoInicialDeclarado"
+        ],
+        "title": "CustodyEventType",
+        "type": "string"
+      },
+      "CustodyStateProjection": {
+        "description": "Derived state for a physical unit.",
+        "properties": {
+          "as_of_stream_version": {
+            "title": "As Of Stream Version",
+            "type": "integer"
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CustodyEventType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unit_id": {
+            "title": "Unit Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unit_id",
+          "event_type",
+          "as_of_stream_version"
+        ],
+        "title": "CustodyStateProjection",
+        "type": "object"
+      },
+      "DeclareCustodyAssertion": {
+        "additionalProperties": false,
+        "description": "Command for the single conceptual write API.",
+        "properties": {
+          "claim_id": {
+            "format": "uuid",
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "event_type": {
+            "$ref": "#/components/schemas/CustodyEventType"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/AssertionPayload"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "unit_id": {
+            "minLength": 1,
+            "title": "Unit Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "claim_id",
+          "unit_id",
+          "event_type",
+          "occurred_at",
+          "provenance"
+        ],
+        "title": "DeclareCustodyAssertion",
+        "type": "object"
+      },
+      "EvidenceReference": {
+        "additionalProperties": false,
+        "description": "A verifiable pointer to evidence held outside the custody log.",
+        "properties": {
+          "sha256": {
+            "pattern": "^[a-fA-F0-9]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "uri": {
+            "minLength": 1,
+            "title": "Uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uri",
+          "sha256"
+        ],
+        "title": "EvidenceReference",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HistoryResponse": {
+        "additionalProperties": false,
+        "description": "API response for a unit history query.",
+        "properties": {
+          "assertions": {
+            "items": {
+              "$ref": "#/components/schemas/CommittedCustodyAssertion"
+            },
+            "title": "Assertions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "assertions"
+        ],
+        "title": "HistoryResponse",
+        "type": "object"
+      },
+      "PayloadAttribute": {
+        "additionalProperties": false,
+        "description": "Immutable adapter metadata attribute.",
+        "properties": {
+          "key": {
+            "minLength": 1,
+            "title": "Key",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key",
+          "value"
+        ],
+        "title": "PayloadAttribute",
+        "type": "object"
+      },
+      "Provenance": {
+        "additionalProperties": false,
+        "description": "Origin metadata for a custody assertion.",
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "adapter_id": {
+            "minLength": 1,
+            "title": "Adapter Id",
+            "type": "string"
+          },
+          "declared_at": {
+            "format": "date-time",
+            "title": "Declared At",
+            "type": "string"
+          },
+          "evidence": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EvidenceReference"
+            },
+            "title": "Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "actor_id",
+          "adapter_id",
+          "declared_at"
+        ],
+        "title": "Provenance",
+        "type": "object"
+      },
+      "StateResponse": {
+        "additionalProperties": false,
+        "description": "API response for a derived state query.",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/CustodyStateProjection"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "StateResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Append-only API for verifiable medical-device custody claims.",
+    "title": "Medical Device Custody Kernel",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/custody/assertions": {
+      "post": {
+        "description": "Declare a custody assertion through the write model.",
+        "operationId": "declare_assertion_v1_custody_assertions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclareCustodyAssertion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssertionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Declare Assertion",
+        "tags": [
+          "custody"
+        ]
+      }
+    },
+    "/v1/custody/assertions/{claim_id}": {
+      "get": {
+        "description": "Return one assertion for provenance verification.",
+        "operationId": "assertion_by_claim_v1_custody_assertions__claim_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "claim_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Claim Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssertionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assertion By Claim",
+        "tags": [
+          "custody"
+        ]
+      }
+    },
+    "/v1/custody/units/{unit_id}/history": {
+      "get": {
+        "description": "Return a derived unit history from the read model.",
+        "operationId": "unit_history_v1_custody_units__unit_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unit History",
+        "tags": [
+          "custody"
+        ]
+      }
+    },
+    "/v1/custody/units/{unit_id}/state": {
+      "get": {
+        "description": "Return derived unit state at a domain timestamp.",
+        "operationId": "unit_state_v1_custody_units__unit_id__state_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "title": "Unit Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "at",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "title": "At",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unit State",
+        "tags": [
+          "custody"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,2 @@
+"""CSV adapter conformance placeholder."""
+

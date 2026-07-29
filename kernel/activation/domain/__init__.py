@@ -1,0 +1,2 @@
+"""Activation domain model."""
+
