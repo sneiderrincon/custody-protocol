@@ -13,6 +13,14 @@ def test_domain_does_not_import_infrastructure_or_api() -> None:
         assert not any(term in source for term in forbidden), path
 
 
+def test_governance_domain_does_not_import_identity() -> None:
+    source = (ROOT / "kernel" / "governance" / "domain" / "policies.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "kernel.identity" not in source
+
+
 def test_read_model_does_not_import_write_service() -> None:
     source = (ROOT / "kernel" / "custody" / "application" / "projections.py").read_text(
         encoding="utf-8"

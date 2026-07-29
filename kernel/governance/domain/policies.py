@@ -3,14 +3,28 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Protocol
+from uuid import UUID
 
 from kernel.custody.domain.assertions import CustodyAssertionDraft
-from kernel.identity.domain.actors import Actor
 from kernel.shared.domain.errors import DomainError
 
 
 class GovernancePolicyViolationError(DomainError):
     """Raised when a claim violates governance policy."""
+
+
+class AuthorizableActor(Protocol):
+    """The only actor shape governance needs, decoupled from identity's domain.
+
+    Any object with these two members satisfies this protocol structurally,
+    so governance never has to import the identity bounded context's model.
+    """
+
+    actor_id: UUID
+
+    @property
+    def can_declare_claims(self) -> bool: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,7 +33,7 @@ class CustodyDeclarationPolicy:
 
     policy_version: str = "governance/custody-declaration/v1"
 
-    def authorize(self, actor: Actor | None, draft: CustodyAssertionDraft) -> None:
+    def authorize(self, actor: AuthorizableActor | None, draft: CustodyAssertionDraft) -> None:
         """Validate that the draft provenance is allowed to enter Custody."""
 
         if actor is None:
