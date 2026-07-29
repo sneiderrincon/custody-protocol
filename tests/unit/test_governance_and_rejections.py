@@ -34,15 +34,43 @@ def test_governance_rejects_unknown_actor_and_records_rejection() -> None:
 
 
 def test_precedence_rejection_does_not_append_custody_assertion() -> None:
+    actor_id = uuid4()
+    registry = InMemoryActorRegistry()
+    registry.add(
+        Actor(
+            actor_id=actor_id,
+            legal_name="Anchor Hospital",
+            status=ActorStatus.ACTIVE,
+            trust_level=TrustLevel.STANDARD,
+        )
+    )
     store = InMemoryCustodyEventStore()
     rejection_log = InMemoryRejectionLog()
-    service = DeclareCustodyAssertionService(store, rejection_log=rejection_log)
+    service = DeclareCustodyAssertionService(
+        store,
+        actor_registry=registry,
+        rejection_log=rejection_log,
+    )
 
     with pytest.raises(RuleViolationError):
-        service.handle(_command(CustodyEventType.RECEIVED))
+        service.handle(_command(CustodyEventType.RECEIVED, actor_id=actor_id))
 
     assert store.all() == ()
     assert rejection_log.all()[0].reason == RejectionReason.PRECEDENCE_VIOLATION
+
+
+def test_missing_actor_registry_fails_closed_and_records_rejection() -> None:
+    rejection_log = InMemoryRejectionLog()
+    service = DeclareCustodyAssertionService(
+        InMemoryCustodyEventStore(),
+        rejection_log=rejection_log,
+    )
+
+    with pytest.raises(GovernancePolicyViolationError):
+        service.handle(_command(CustodyEventType.MANUFACTURED))
+
+    rejection = rejection_log.all()[0]
+    assert rejection.reason == RejectionReason.GOVERNANCE_VIOLATION
 
 
 def test_active_actor_can_declare_custody_assertion() -> None:

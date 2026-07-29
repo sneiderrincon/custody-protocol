@@ -18,13 +18,29 @@ from kernel.custody.domain.value_objects import (
     Provenance,
 )
 from kernel.custody.infrastructure.in_memory_event_store import InMemoryCustodyEventStore
+from kernel.identity.domain.actors import Actor, ActorStatus, TrustLevel
+from kernel.identity.infrastructure.in_memory_actor_registry import InMemoryActorRegistry
 
 SHIPPED_STREAM_VERSION = 2
+_ACTOR_ID = uuid4()
+
+
+def _authorized_service(store: InMemoryCustodyEventStore) -> DeclareCustodyAssertionService:
+    registry = InMemoryActorRegistry()
+    registry.add(
+        Actor(
+            actor_id=_ACTOR_ID,
+            legal_name="Conformance Test Actor",
+            status=ActorStatus.ACTIVE,
+            trust_level=TrustLevel.STANDARD,
+        )
+    )
+    return DeclareCustodyAssertionService(store, actor_registry=registry)
 
 
 def test_assertions_are_immutable_after_commit() -> None:
     store = InMemoryCustodyEventStore()
-    service = DeclareCustodyAssertionService(store)
+    service = _authorized_service(store)
 
     committed = service.handle(_command(CustodyEventType.MANUFACTURED))
 
@@ -46,7 +62,7 @@ def test_payload_is_deeply_immutable_enough_for_domain_use() -> None:
 
 def test_idempotent_command_returns_existing_committed_assertion() -> None:
     store = InMemoryCustodyEventStore()
-    service = DeclareCustodyAssertionService(store)
+    service = _authorized_service(store)
     command = _command(CustodyEventType.MANUFACTURED)
 
     first = service.handle(command)
@@ -60,7 +76,7 @@ def test_idempotent_command_returns_existing_committed_assertion() -> None:
 
 def test_invalid_precedence_is_rejected_before_append() -> None:
     store = InMemoryCustodyEventStore()
-    service = DeclareCustodyAssertionService(store)
+    service = _authorized_service(store)
 
     with pytest.raises(RuleViolationError, match="cannot start"):
         service.handle(_command(CustodyEventType.RECEIVED))
@@ -70,7 +86,7 @@ def test_invalid_precedence_is_rejected_before_append() -> None:
 
 def test_state_is_derived_by_replaying_history() -> None:
     store = InMemoryCustodyEventStore()
-    service = DeclareCustodyAssertionService(store)
+    service = _authorized_service(store)
     projection = CustodyProjectionEngine()
     manufactured = _command(CustodyEventType.MANUFACTURED)
     shipped = _command(
@@ -104,7 +120,7 @@ def _command(
         event_type=event_type,
         occurred_at=occurred_at,
         provenance=Provenance(
-            actor_id=uuid4(),
+            actor_id=_ACTOR_ID,
             adapter_id="conformance-test-adapter",
             declared_at=occurred_at,
             evidence=(

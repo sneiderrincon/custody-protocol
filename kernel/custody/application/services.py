@@ -76,7 +76,8 @@ class DeclareCustodyAssertionService:
 
     def _authorize(self, draft: CustodyAssertionDraft) -> None:
         if self._actor_registry is None:
-            return
+            msg = "no actor registry configured; custody declarations cannot be authorized"
+            raise GovernancePolicyViolationError(msg)
         actor = self._actor_registry.get(draft.provenance.actor_id)
         self._declaration_policy.authorize(actor, draft)
 

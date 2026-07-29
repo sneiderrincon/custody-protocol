@@ -2,23 +2,106 @@
 
 from __future__ import annotations
 
+import os
+from dataclasses import dataclass
 from functools import lru_cache
+from uuid import UUID
+
+from sqlalchemy.orm import Session
 
 from kernel.custody.application.services import DeclareCustodyAssertionService
+from kernel.custody.domain.assertions import CommittedCustodyAssertion, CustodyAssertionDraft
+from kernel.custody.domain.rejections import RejectedInconsistency
 from kernel.custody.infrastructure.in_memory_event_store import InMemoryCustodyEventStore
 from kernel.custody.infrastructure.in_memory_rejection_log import InMemoryRejectionLog
+from kernel.custody.infrastructure.sqlalchemy_event_store import (
+    SqlAlchemyCustodyEventStore,
+    SqlAlchemyRejectionLog,
+)
+from kernel.custody.ports.event_store import CustodyEventStore
+from kernel.custody.ports.rejection_log import RejectionLog
+from kernel.identity.infrastructure.in_memory_actor_registry import InMemoryActorRegistry
+from kernel.identity.ports.actor_registry import ActorRegistry
+from kernel.shared.infrastructure.database import build_session_factory
+
+
+@dataclass
+class _CommittingCustodyEventStore:
+    """Commits the bound session after each successful append.
+
+    ``KernelContainer`` holds one long-lived session for the process, so each
+    mutating call must be committed individually for custody assertions to be
+    durable across requests and process restarts. The wrapped
+    ``SqlAlchemyCustodyEventStore`` deliberately leaves transaction boundaries
+    to its caller (see tests/integration/test_sqlalchemy_event_store.py), so
+    the composition root owns that decision here.
+    """
+
+    _inner: SqlAlchemyCustodyEventStore
+    _session: Session
+
+    def stream(self, unit_id: str) -> tuple[CommittedCustodyAssertion, ...]:
+        return self._inner.stream(unit_id)
+
+    def append(
+        self,
+        draft: CustodyAssertionDraft,
+        *,
+        expected_stream_version: int,
+    ) -> CommittedCustodyAssertion:
+        committed = self._inner.append(draft, expected_stream_version=expected_stream_version)
+        self._session.commit()
+        return committed
+
+    def by_claim_id(self, claim_id: UUID) -> CommittedCustodyAssertion | None:
+        return self._inner.by_claim_id(claim_id)
+
+    def all(self) -> tuple[CommittedCustodyAssertion, ...]:
+        return self._inner.all()
+
+
+@dataclass
+class _CommittingRejectionLog:
+    """Commits the bound session after each successful rejection append."""
+
+    _inner: SqlAlchemyRejectionLog
+    _session: Session
+
+    def append(self, rejection: RejectedInconsistency) -> RejectedInconsistency:
+        result = self._inner.append(rejection)
+        self._session.commit()
+        return result
+
+    def all(self) -> tuple[RejectedInconsistency, ...]:
+        return self._inner.all()
 
 
 class KernelContainer:
     """Small composition root for local API execution."""
 
     def __init__(self) -> None:
-        """Initialize local in-memory ports."""
+        """Wire ports from ``DATABASE_URL`` when configured, else in-memory."""
 
-        self.event_store = InMemoryCustodyEventStore()
-        self.rejection_log = InMemoryRejectionLog()
+        database_url = os.getenv("DATABASE_URL")
+        self.event_store: CustodyEventStore
+        self.rejection_log: RejectionLog
+        self.actor_registry: ActorRegistry = InMemoryActorRegistry()
+
+        if database_url:
+            session = build_session_factory(database_url)()
+            self.event_store = _CommittingCustodyEventStore(
+                SqlAlchemyCustodyEventStore(session), session
+            )
+            self.rejection_log = _CommittingRejectionLog(
+                SqlAlchemyRejectionLog(session), session
+            )
+        else:
+            self.event_store = InMemoryCustodyEventStore()
+            self.rejection_log = InMemoryRejectionLog()
+
         self.declare_service = DeclareCustodyAssertionService(
             self.event_store,
+            actor_registry=self.actor_registry,
             rejection_log=self.rejection_log,
         )
 
@@ -28,4 +111,3 @@ def get_container() -> KernelContainer:
     """Return the process-local kernel container."""
 
     return KernelContainer()
-
