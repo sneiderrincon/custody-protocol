@@ -40,7 +40,10 @@ def test_sdk_posts_command_and_returns_committed_assertion(monkeypatch) -> None:
         assert url == "http://kernel.test/v1/custody/assertions"
         assert json["unit_id"] == "sdk-unit"
         assert timeout == 10.0
-        return httpx.Response(201, json={"assertion": committed.model_dump(mode="json")})
+        request = httpx.Request("POST", url)
+        return httpx.Response(
+            201, json={"assertion": committed.model_dump(mode="json")}, request=request
+        )
 
     monkeypatch.setattr(httpx, "post", fake_post)
 
