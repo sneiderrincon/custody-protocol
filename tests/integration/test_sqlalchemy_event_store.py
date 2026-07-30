@@ -70,6 +70,40 @@ def test_session_scope_commits_successful_work() -> None:
         assert store.by_claim_id(draft.claim_id) is not None
 
 
+def test_datetimes_round_trip_as_timezone_aware_utc() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+
+    with Session(engine) as session:
+        event_store = SqlAlchemyCustodyEventStore(session)
+        rejection_log = SqlAlchemyRejectionLog(session)
+        draft = _draft(CustodyEventType.MANUFACTURED)
+        committed = event_store.append(draft, expected_stream_version=0)
+        rejection = RejectedInconsistency(
+            rejection_id=uuid4(),
+            attempted_claim_id=uuid4(),
+            unit_id=draft.unit_id,
+            event_type=CustodyEventType.SHIPPED,
+            reason=RejectionReason.PRECEDENCE_VIOLATION,
+            detail="unit already manufactured",
+            rejected_at=datetime(2026, 1, 1, tzinfo=UTC),
+            provenance=draft.provenance,
+        )
+        rejection_log.append(rejection)
+        session.commit()
+
+        # expire_on_commit (default True) forces a fresh SELECT from SQLite on
+        # the next access, exercising the real DB round trip.
+        reread_assertion = event_store.by_claim_id(draft.claim_id)
+        reread_rejection = rejection_log.all()[0]
+
+    assert reread_assertion is not None
+    assert reread_assertion.occurred_at.tzinfo is not None
+    assert reread_assertion.occurred_at == committed.occurred_at
+    assert reread_rejection.rejected_at.tzinfo is not None
+    assert reread_rejection.rejected_at == rejection.rejected_at
+
+
 def _draft(event_type: CustodyEventType) -> CustodyAssertionDraft:
     now = datetime(2026, 1, 1, tzinfo=UTC)
     return CustodyAssertionDraft(

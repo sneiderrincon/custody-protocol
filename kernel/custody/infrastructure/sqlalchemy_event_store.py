@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import Select, func, select
@@ -135,12 +136,30 @@ class SqlAlchemyRejectionLog:
         return tuple(_record_to_rejection(record) for record in self._session.scalars(statement))
 
 
+def _as_utc(value: datetime) -> datetime:
+    """Return ``value`` as a timezone-aware UTC datetime.
+
+    SQLite has no native timezone-aware timestamp type: SQLAlchemy's
+    ``DateTime(timezone=True)`` maps to PostgreSQL's ``TIMESTAMPTZ`` (which
+    round-trips tz-aware values correctly), but on SQLite it falls back to a
+    naive ``DATETIME``, silently dropping ``tzinfo`` on read even though it
+    was present on write. Domain writes always store UTC-normalized values,
+    so a naive value read back is known to already represent UTC — we only
+    reattach the tzinfo, never reinterpret the wall-clock value. On
+    PostgreSQL, ``value`` already carries tzinfo, so this is a no-op there.
+    """
+
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 def _record_to_assertion(record: CustodyAssertionRecord) -> CommittedCustodyAssertion:
     return CommittedCustodyAssertion(
         claim_id=UUID(record.claim_id),
         unit_id=record.unit_id,
         event_type=CustodyEventType(record.event_type),
-        occurred_at=record.occurred_at,
+        occurred_at=_as_utc(record.occurred_at),
         provenance=Provenance.model_validate(record.provenance),
         payload=AssertionPayload.model_validate(record.payload),
         global_position=record.global_position,
@@ -156,7 +175,7 @@ def _record_to_rejection(record: RejectedInconsistencyRecord) -> RejectedInconsi
         event_type=CustodyEventType(record.event_type),
         reason=RejectionReason(record.reason),
         detail=record.detail,
-        rejected_at=record.rejected_at,
+        rejected_at=_as_utc(record.rejected_at),
         provenance=Provenance.model_validate(record.provenance),
     )
 
