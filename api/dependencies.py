@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from uuid import UUID
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from kernel.custody.application.services import DeclareCustodyAssertionService
@@ -20,9 +21,11 @@ from kernel.custody.infrastructure.sqlalchemy_event_store import (
 )
 from kernel.custody.ports.event_store import CustodyEventStore
 from kernel.custody.ports.rejection_log import RejectionLog
+from kernel.identity.domain.actors import Actor, ActorStatus, TrustLevel
 from kernel.identity.infrastructure.in_memory_actor_registry import InMemoryActorRegistry
 from kernel.identity.ports.actor_registry import ActorRegistry
 from kernel.shared.infrastructure.database import build_session_factory
+
 
 
 @dataclass
@@ -86,9 +89,11 @@ class KernelContainer:
         self.event_store: CustodyEventStore
         self.rejection_log: RejectionLog
         self.actor_registry: ActorRegistry = InMemoryActorRegistry()
+        self._session: Session | None = None
 
         if database_url:
             session = build_session_factory(database_url)()
+            self._session = session
             self.event_store = _CommittingCustodyEventStore(
                 SqlAlchemyCustodyEventStore(session), session
             )
@@ -105,9 +110,21 @@ class KernelContainer:
             rejection_log=self.rejection_log,
         )
 
+    def ping(self) -> None:
+        """Verify the backing store is reachable; raises if not.
+
+        Used by the health endpoint (api/routes/health.py) and by startup
+        validation (api/main.py) for readiness checks. In-memory mode has no
+        external dependency to verify, so this is a no-op in that case.
+        """
+
+        if self._session is not None:
+            self._session.execute(text("SELECT 1"))
+
 
 @lru_cache
 def get_container() -> KernelContainer:
     """Return the process-local kernel container."""
 
     return KernelContainer()
+
