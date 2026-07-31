@@ -16,6 +16,7 @@ from kernel.identity.domain.actors import Actor, ActorStatus, TrustLevel
 HTTP_OK = 200
 HTTP_CREATED = 201
 HTTP_UNAUTHORIZED = 401
+HTTP_FORBIDDEN = 403
 HTTP_UNPROCESSABLE_ENTITY = 422
 HTTP_TOO_MANY_REQUESTS = 429
 
@@ -132,6 +133,11 @@ def test_api_rejects_declaration_from_unknown_actor(monkeypatch) -> None:
 
 
 def test_api_rejects_declaration_without_bearer_token(monkeypatch) -> None:
+    """With HTTPBearer, requests carrying no Authorization header at all are
+    rejected by FastAPI's scheme detection itself (403), distinct from a
+    present-but-invalid token, which api/security.py rejects with 401.
+    """
+
     monkeypatch.setenv("JWT_SECRET_KEY", JWT_TEST_SECRET)
     get_container.cache_clear()
     client = TestClient(create_app())
@@ -154,7 +160,7 @@ def test_api_rejects_declaration_without_bearer_token(monkeypatch) -> None:
         },
     )
 
-    assert response.status_code == HTTP_UNAUTHORIZED
+    assert response.status_code == HTTP_FORBIDDEN
 
 
 def test_api_ignores_body_actor_id_and_trusts_jwt_subject_only(monkeypatch) -> None:

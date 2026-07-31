@@ -8,7 +8,9 @@ delivery-mechanism frameworks) is preserved.
 
 Token *issuance* is intentionally out of scope here — see
 docs/decisions/0010-jwt-authentication.md for why, and what identity
-provider this API expects tokens from.
+provider this API expects tokens from. There is no login endpoint; Swagger
+UI's "Authorize" dialog accepts an already-issued bearer token directly
+(HTTPBearer), rather than presenting a username/password form.
 """
 
 from __future__ import annotations
@@ -17,14 +19,13 @@ import os
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import HTTPException, Security, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 ALGORITHM = "HS256"
 
-# tokenUrl is documentation-only for the OpenAPI/Swagger "Authorize" button;
-# this API does not implement a token-issuing endpoint (see module docstring).
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="v1/auth/token", auto_error=True)
+bearer_scheme = HTTPBearer(auto_error=True)
+_BEARER_CREDENTIALS = Security(bearer_scheme)
 
 _CREDENTIALS_ERROR = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -47,7 +48,9 @@ def _secret_key() -> str:
     return secret
 
 
-def get_current_actor_id(token: str = Depends(oauth2_scheme)) -> UUID:
+def get_current_actor_id(
+    credentials: HTTPAuthorizationCredentials = _BEARER_CREDENTIALS,
+) -> UUID:
     """FastAPI dependency: verify the bearer JWT and return the actor_id.
 
     The token's ``sub`` claim is the only source of actor identity trusted by
@@ -56,6 +59,7 @@ def get_current_actor_id(token: str = Depends(oauth2_scheme)) -> UUID:
     exactly the trust boundary this dependency exists to enforce.
     """
 
+    token = credentials.credentials
     try:
         payload = jwt.decode(token, _secret_key(), algorithms=[ALGORITHM])
     except jwt.InvalidTokenError as exc:
