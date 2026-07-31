@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from api.dependencies import get_container
 from api.main import create_app
+from api.rate_limit import get_write_rate_limiter
 from api.security import ALGORITHM
 from kernel.custody.domain.events import CustodyEventType
 from kernel.identity.domain.actors import Actor, ActorStatus, TrustLevel
@@ -16,6 +17,7 @@ HTTP_OK = 200
 HTTP_CREATED = 201
 HTTP_UNAUTHORIZED = 401
 HTTP_UNPROCESSABLE_ENTITY = 422
+HTTP_TOO_MANY_REQUESTS = 429
 
 JWT_TEST_SECRET = "test-secret-do-not-use-in-production"  # noqa: S105
 
@@ -188,3 +190,49 @@ def test_api_ignores_body_actor_id_and_trusts_jwt_subject_only(monkeypatch) -> N
 
     assert response.status_code == HTTP_CREATED
     assert response.json()["assertion"]["provenance"]["actor_id"] == str(authenticated_actor_id)
+
+
+def test_api_rate_limits_write_endpoint(monkeypatch) -> None:
+    monkeypatch.setenv("JWT_SECRET_KEY", JWT_TEST_SECRET)
+    monkeypatch.setenv("RATE_LIMIT_WRITE_MAX_REQUESTS", "2")
+    monkeypatch.setenv("RATE_LIMIT_WRITE_WINDOW_SECONDS", "60")
+    get_container.cache_clear()
+    get_write_rate_limiter.cache_clear()
+    actor_id = uuid4()
+    _register_active_actor(actor_id)
+    client = TestClient(create_app())
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+
+    try:
+
+        def _declare(unit_id: str) -> object:
+            return client.post(
+                "/v1/custody/assertions",
+                json={
+                    "claim_id": str(uuid4()),
+                    "unit_id": unit_id,
+                    "event_type": CustodyEventType.MANUFACTURED.value,
+                    "occurred_at": now.isoformat(),
+                    "provenance": {
+                        "actor_id": str(actor_id),
+                        "adapter_id": "api-test-adapter",
+                        "declared_at": now.isoformat(),
+                        "evidence": [],
+                    },
+                    "payload": {"attributes": []},
+                },
+                headers=_bearer_header(actor_id),
+            )
+
+        first = _declare("rate-limit-unit-1")
+        second = _declare("rate-limit-unit-2")
+        third = _declare("rate-limit-unit-3")
+
+        assert first.status_code == HTTP_CREATED
+        assert second.status_code == HTTP_CREATED
+        assert third.status_code == HTTP_TOO_MANY_REQUESTS
+        assert "Retry-After" in third.headers
+    finally:
+        get_write_rate_limiter.cache_clear()
+        monkeypatch.delenv("RATE_LIMIT_WRITE_MAX_REQUESTS", raising=False)
+        monkeypatch.delenv("RATE_LIMIT_WRITE_WINDOW_SECONDS", raising=False)

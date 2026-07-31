@@ -15,6 +15,8 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://kernel:kernel@postgres:5432/kernel
       JWT_SECRET_KEY: change-me-in-production
+      RATE_LIMIT_WRITE_MAX_REQUESTS: "60"
+      RATE_LIMIT_WRITE_WINDOW_SECONDS: "60"
     ports:
       - "8000:8000"
     depends_on:

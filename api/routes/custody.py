@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict
 
 from api.dependencies import KernelContainer, get_container
+from api.rate_limit import enforce_write_rate_limit
 from api.security import get_current_actor_id
 from kernel.custody.application.commands import DeclareCustodyAssertion
 from kernel.custody.application.projections import CustodyProjectionEngine, CustodyStateProjection
@@ -20,6 +21,7 @@ from kernel.shared.domain.errors import ConcurrencyConflictError, IdempotencyCon
 router = APIRouter(prefix="/v1/custody", tags=["custody"])
 CONTAINER_DEPENDENCY = Depends(get_container)
 ACTOR_DEPENDENCY = Depends(get_current_actor_id)
+RATE_LIMIT_DEPENDENCY = Depends(enforce_write_rate_limit)
 
 
 class AssertionResponse(BaseModel):
@@ -55,6 +57,7 @@ def declare_assertion(
     command: DeclareCustodyAssertion,
     container: KernelContainer = CONTAINER_DEPENDENCY,
     authenticated_actor_id: UUID = ACTOR_DEPENDENCY,
+    _rate_limit: None = RATE_LIMIT_DEPENDENCY,
 ) -> AssertionResponse:
     """Declare a custody assertion through the write model.
 
