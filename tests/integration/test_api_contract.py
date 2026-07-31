@@ -3,16 +3,21 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
+import jwt
 from fastapi.testclient import TestClient
 
 from api.dependencies import get_container
 from api.main import create_app
+from api.security import ALGORITHM
 from kernel.custody.domain.events import CustodyEventType
 from kernel.identity.domain.actors import Actor, ActorStatus, TrustLevel
 
 HTTP_OK = 200
 HTTP_CREATED = 201
+HTTP_UNAUTHORIZED = 401
 HTTP_UNPROCESSABLE_ENTITY = 422
+
+JWT_TEST_SECRET = "test-secret-do-not-use-in-production"  # noqa: S105
 
 
 def _register_active_actor(actor_id: UUID) -> None:
@@ -26,7 +31,13 @@ def _register_active_actor(actor_id: UUID) -> None:
     )
 
 
-def test_api_declares_and_reads_derived_state() -> None:
+def _bearer_header(actor_id: UUID) -> dict[str, str]:
+    token = jwt.encode({"sub": str(actor_id)}, JWT_TEST_SECRET, algorithm=ALGORITHM)
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_api_declares_and_reads_derived_state(monkeypatch) -> None:
+    monkeypatch.setenv("JWT_SECRET_KEY", JWT_TEST_SECRET)
     get_container.cache_clear()
     actor_id = uuid4()
     _register_active_actor(actor_id)
@@ -49,6 +60,7 @@ def test_api_declares_and_reads_derived_state() -> None:
             },
             "payload": {"attributes": []},
         },
+        headers=_bearer_header(actor_id),
     )
 
     assert response.status_code == HTTP_CREATED
@@ -62,7 +74,8 @@ def test_api_declares_and_reads_derived_state() -> None:
     assert state_response.json()["state"]["event_type"] == CustodyEventType.MANUFACTURED.value
 
 
-def test_api_rejects_invalid_precedence_without_history() -> None:
+def test_api_rejects_invalid_precedence_without_history(monkeypatch) -> None:
+    monkeypatch.setenv("JWT_SECRET_KEY", JWT_TEST_SECRET)
     get_container.cache_clear()
     actor_id = uuid4()
     _register_active_actor(actor_id)
@@ -82,15 +95,18 @@ def test_api_rejects_invalid_precedence_without_history() -> None:
                 "declared_at": now.isoformat(),
             },
         },
+        headers=_bearer_header(actor_id),
     )
 
     assert response.status_code == HTTP_UNPROCESSABLE_ENTITY
 
 
-def test_api_rejects_declaration_from_unknown_actor() -> None:
+def test_api_rejects_declaration_from_unknown_actor(monkeypatch) -> None:
+    monkeypatch.setenv("JWT_SECRET_KEY", JWT_TEST_SECRET)
     get_container.cache_clear()
     client = TestClient(create_app())
     now = datetime(2026, 1, 1, tzinfo=UTC)
+    unknown_actor_id = uuid4()
 
     response = client.post(
         "/v1/custody/assertions",
@@ -107,6 +123,68 @@ def test_api_rejects_declaration_from_unknown_actor() -> None:
             },
             "payload": {"attributes": []},
         },
+        headers=_bearer_header(unknown_actor_id),
     )
 
     assert response.status_code == HTTP_UNPROCESSABLE_ENTITY
+
+
+def test_api_rejects_declaration_without_bearer_token(monkeypatch) -> None:
+    monkeypatch.setenv("JWT_SECRET_KEY", JWT_TEST_SECRET)
+    get_container.cache_clear()
+    client = TestClient(create_app())
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+
+    response = client.post(
+        "/v1/custody/assertions",
+        json={
+            "claim_id": str(uuid4()),
+            "unit_id": "api-no-token-unit",
+            "event_type": CustodyEventType.MANUFACTURED.value,
+            "occurred_at": now.isoformat(),
+            "provenance": {
+                "actor_id": str(uuid4()),
+                "adapter_id": "api-test-adapter",
+                "declared_at": now.isoformat(),
+                "evidence": [],
+            },
+            "payload": {"attributes": []},
+        },
+    )
+
+    assert response.status_code == HTTP_UNAUTHORIZED
+
+
+def test_api_ignores_body_actor_id_and_trusts_jwt_subject_only(monkeypatch) -> None:
+    """The security fix under test: provenance.actor_id in the body must never
+    be trusted for authorization — only the JWT's `sub` claim is authoritative.
+    """
+
+    monkeypatch.setenv("JWT_SECRET_KEY", JWT_TEST_SECRET)
+    get_container.cache_clear()
+    authenticated_actor_id = uuid4()
+    impersonated_actor_id = uuid4()
+    _register_active_actor(authenticated_actor_id)
+    client = TestClient(create_app())
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+
+    response = client.post(
+        "/v1/custody/assertions",
+        json={
+            "claim_id": str(uuid4()),
+            "unit_id": "api-jwt-override-unit",
+            "event_type": CustodyEventType.MANUFACTURED.value,
+            "occurred_at": now.isoformat(),
+            "provenance": {
+                "actor_id": str(impersonated_actor_id),
+                "adapter_id": "api-test-adapter",
+                "declared_at": now.isoformat(),
+                "evidence": [],
+            },
+            "payload": {"attributes": []},
+        },
+        headers=_bearer_header(authenticated_actor_id),
+    )
+
+    assert response.status_code == HTTP_CREATED
+    assert response.json()["assertion"]["provenance"]["actor_id"] == str(authenticated_actor_id)

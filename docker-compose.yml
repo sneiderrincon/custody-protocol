@@ -14,6 +14,7 @@ services:
     build: .
     environment:
       DATABASE_URL: postgresql+psycopg://kernel:kernel@postgres:5432/kernel
+      JWT_SECRET_KEY: change-me-in-production
     ports:
       - "8000:8000"
     depends_on:

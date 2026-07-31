@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict
 
 from api.dependencies import KernelContainer, get_container
+from api.security import get_current_actor_id
 from kernel.custody.application.commands import DeclareCustodyAssertion
 from kernel.custody.application.projections import CustodyProjectionEngine, CustodyStateProjection
 from kernel.custody.domain.assertions import CommittedCustodyAssertion
@@ -18,6 +19,7 @@ from kernel.shared.domain.errors import ConcurrencyConflictError, IdempotencyCon
 
 router = APIRouter(prefix="/v1/custody", tags=["custody"])
 CONTAINER_DEPENDENCY = Depends(get_container)
+ACTOR_DEPENDENCY = Depends(get_current_actor_id)
 
 
 class AssertionResponse(BaseModel):
@@ -52,11 +54,26 @@ class StateResponse(BaseModel):
 def declare_assertion(
     command: DeclareCustodyAssertion,
     container: KernelContainer = CONTAINER_DEPENDENCY,
+    authenticated_actor_id: UUID = ACTOR_DEPENDENCY,
 ) -> AssertionResponse:
-    """Declare a custody assertion through the write model."""
+    """Declare a custody assertion through the write model.
 
+    The authenticated actor_id (from the verified JWT) always overrides
+    whatever actor_id is present in the request body's provenance — a
+    client-supplied actor_id is never trusted for authorization. The request
+    schema is unchanged for backward compatibility; the field is simply no
+    longer authoritative.
+    """
+
+    authenticated_command = command.model_copy(
+        update={
+            "provenance": command.provenance.model_copy(
+                update={"actor_id": authenticated_actor_id}
+            )
+        }
+    )
     try:
-        assertion = container.declare_service.handle(command)
+        assertion = container.declare_service.handle(authenticated_command)
     except (GovernancePolicyViolationError, RuleViolationError) as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
