@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Custody Protocol Console</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #0b0d0f; }
+</style>
+</head>
+<body>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #0b0d0f;
+  --panel: #14171b;
+  --panel-alt: #1b1f24;
+  --border: #2a2f36;
+  --border-soft: #21262c;
+  --text: #e7e9ec;
+  --text-dim: #8b95a1;
+  --text-faint: #565e68;
+  --accent: #e8a33d;
+  --accent-soft: #3a2f1c;
+  --success: #4c9a6a;
+  --success-soft: #1c2b22;
+  --error: #d1665a;
+  --error-soft: #2e1c1a;
+}
+
+* { box-sizing: border-box; }
+
+.ckc-root {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  min-height: 100%;
+  padding: 32px 24px 64px;
+  border-radius: 12px;
+}
+
+.ckc-mono { font-family: 'IBM Plex Mono', monospace; }
+
+.ckc-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.ckc-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.ckc-title { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.ckc-subtitle { color: var(--text-dim); font-size: 13px; margin-top: 2px; margin-bottom: 22px; }
+
+.ckc-connbar {
+  display: grid;
+  grid-template-columns: 2fr 2fr auto;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+@media (max-width: 720px) { .ckc-connbar { grid-template-columns: 1fr; } }
+
+.ckc-field-label {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 5px;
+  display: block;
+}
+.ckc-input, .ckc-textarea, .ckc-select {
+  width: 100%;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 9px 10px;
+  font-size: 13px;
+  font-family: 'IBM Plex Mono', monospace;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.ckc-input:focus, .ckc-textarea:focus, .ckc-select:focus { border-color: var(--accent); }
+.ckc-input.invalid { border-color: var(--error); }
+.ckc-textarea { resize: vertical; min-height: 76px; line-height: 1.5; }
+.ckc-select { appearance: none; cursor: pointer; }
+
+.ckc-btn {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 7px;
+  padding: 9px 16px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.ckc-btn:hover { border-color: var(--text-dim); }
+.ckc-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ckc-btn-accent { background: var(--accent); border-color: var(--accent); color: #201404; }
+.ckc-btn-accent:hover { background: #f0ae4d; }
+.ckc-btn-accent:disabled { opacity: 0.5; cursor: default; }
+.ckc-btn-ghost { background: none; border: 1px dashed var(--border); color: var(--text-dim); font-size: 12px; padding: 6px 10px; }
+.ckc-btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+.ckc-btn-icon { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 15px; padding: 4px 8px; }
+.ckc-btn-icon:hover { color: var(--error); }
+
+.ckc-status-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); margin-bottom: 22px; min-height: 18px; }
+.ckc-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; }
+.ckc-dot.ok { background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+.ckc-dot.bad { background: var(--error); box-shadow: 0 0 0 3px var(--error-soft); }
+
+.ckc-cors-note { font-size: 11.5px; color: var(--text-faint); border-left: 2px solid var(--border); padding-left: 10px; margin: -8px 0 22px; line-height: 1.5; }
+
+.ckc-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 22px; flex-wrap: wrap; }
+.ckc-tab {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ckc-tab:hover { color: var(--text-dim); }
+.ckc-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.ckc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+@media (max-width: 860px) { .ckc-grid { grid-template-columns: 1fr; } }
+.ckc-panel-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 12px; }
+.ckc-field { margin-bottom: 14px; }
+.ckc-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ckc-hint { font-size: 11px; color: var(--text-faint); margin-top: 5px; line-height: 1.4; }
+
+.ckc-toggle-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); margin: 4px 0 14px; cursor: pointer; user-select: none; }
+.ckc-toggle-row input { accent-color: var(--accent); }
+
+.ckc-preview { background: var(--panel-alt); border: 1px solid var(--border-soft); border-radius: 8px; padding: 12px; font-size: 11.5px; line-height: 1.6; color: var(--text-dim); white-space: pre-wrap; word-break: break-all; max-height: 320px; overflow-y: auto; }
+
+.ckc-response-empty { border: 1px dashed var(--border); border-radius: 10px; padding: 32px 18px; text-align: center; color: var(--text-faint); font-size: 12.5px; }
+
+.ckc-error-card { background: var(--error-soft); border: 1px solid #5a3530; border-radius: 8px; padding: 14px; color: #f2b8b0; font-size: 12.5px; }
+.ckc-error-code { font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: var(--error); margin-bottom: 8px; display: block; }
+.ckc-error-item { padding: 4px 0; border-top: 1px solid #4a2f2b; }
+.ckc-error-item:first-of-type { border-top: none; }
+.ckc-error-field { font-family: 'IBM Plex Mono', monospace; color: var(--error); }
+
+.ckc-subfield-card {
+  background: var(--panel-alt);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+.ckc-subfield-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }
+.ckc-subfield-row.evidence { grid-template-columns: 1fr 1.4fr auto; }
+
+.ckc-chain { position: relative; padding-left: 4px; }
+.ckc-chain-line { position: absolute; left: 15px; top: 12px; bottom: 12px; width: 1px; background: var(--border); }
+.ckc-tag-wrap { position: relative; padding-left: 34px; margin-bottom: 16px; }
+.ckc-tag-node { position: absolute; left: 10px; top: 18px; width: 11px; height: 11px; border-radius: 50%; background: var(--bg); border: 2px solid var(--accent); z-index: 1; }
+.ckc-tag { background: var(--panel); border: 1px solid var(--border); border-radius: 3px; position: relative; padding: 14px 16px 14px 18px; }
+.ckc-tag::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; background: var(--accent); border-radius: 2px 0 0 2px; }
+.ckc-tag-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.ckc-tag-event { font-weight: 600; font-size: 14px; }
+.ckc-tag-serial { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--text-faint); text-align: right; white-space: nowrap; }
+.ckc-tag-rows { display: grid; gap: 6px; }
+.ckc-tag-row { display: grid; grid-template-columns: 128px 1fr; gap: 10px; font-size: 12px; }
+.ckc-tag-key { color: var(--text-faint); }
+.ckc-tag-val { font-family: 'IBM Plex Mono', monospace; color: var(--text); word-break: break-all; }
+.ckc-tag-badge { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 2px 7px; border-radius: 20px; background: var(--accent-soft); color: var(--accent); border: 1px solid #4a3a20; }
+.ckc-raw-toggle { font-size: 11px; color: var(--text-faint); cursor: pointer; margin-top: 10px; display: inline-block; }
+.ckc-raw-toggle:hover { color: var(--text-dim); }
+</style>
+
+<div class="ckc-root">
+
+  <div class="ckc-header">
+    <div>
+      <div class="ckc-eyebrow">Kernel · Append-only</div>
+      <div class="ckc-title">Custody Protocol Console</div>
+    </div>
+  </div>
+  <div class="ckc-subtitle">Consola de prueba para el API de custodia de dispositivos médicos — cada acción declara o consulta una aserción del log inmutable.</div>
+
+  <div class="ckc-connbar">
+    <div>
+      <label class="ckc-field-label" for="ckc-baseurl">Base URL de la API</label>
+      <input id="ckc-baseurl" class="ckc-input" value="http://localhost:8000" spellcheck="false" />
+    </div>
+    <div>
+      <label class="ckc-field-label" for="ckc-token">Bearer token (para POST)</label>
+      <input id="ckc-token" class="ckc-input" type="password" placeholder="eyJhbGciOi..." spellcheck="false" />
+    </div>
+    <div style="display:flex; align-items:flex-end;">
+      <button class="ckc-btn" id="ckc-health-btn" style="width:100%;">Verificar conexión</button>
+    </div>
+  </div>
+  <div class="ckc-status-row">
+    <span class="ckc-dot" id="ckc-health-dot"></span>
+    <span id="ckc-health-text">Sin verificar</span>
+  </div>
+  <div class="ckc-cors-note">
+    Si la API corre en tu máquina (localhost) y ves un error de red al llamar, probablemente sea CORS: el backend FastAPI necesita <span class="ckc-mono">CORSMiddleware</span> habilitado para aceptar peticiones desde este origen del navegador.
+  </div>
+
+  <div class="ckc-tabs" role="tablist">
+    <button class="ckc-tab active" data-tab="declare">Declarar aserción</button>
+    <button class="ckc-tab" data-tab="history">Historial de unidad</button>
+    <button class="ckc-tab" data-tab="state">Estado en el tiempo</button>
+    <button class="ckc-tab" data-tab="lookup">Buscar por claim_id</button>
+  </div>
+
+  <!-- ===================== DECLARE TAB ===================== -->
+  <div class="ckc-tab-panel" id="panel-declare">
+    <div class="ckc-grid">
+      <div>
+        <div class="ckc-panel-title">POST /v1/custody/assertions</div>
+
+        <div class="ckc-field">
+          <label class="ckc-field-label">claim_id (UUID, lo genera el cliente)</label>
+          <div style="display:flex; gap:8px;">
+            <input class="ckc-input" id="d-claim-id" placeholder="00000000-0000-0000-0000-000000000000" />
+            <button class="ckc-btn-ghost ckc-btn" id="d-gen-claim" type="button">Generar</button>
+          </div>
+          <div class="ckc-hint">Es la clave de idempotencia del comando: reenviar el mismo claim_id no crea un duplicado.</div>
+        </div>
+
+        <div class="ckc-field-row">
+          <div class="ckc-field">
+            <label class="ckc-field-label">unit_id</label>
+            <input class="ckc-input" id="d-unit-id" placeholder="p.ej. SN-004521" />
+          </div>
+          <div class="ckc-field">
+            <label class="ckc-field-label">event_type</label>
+            <select class="ckc-select" id="d-event-type">
+              <option value="Fabricado">Fabricado</option>
+              <option value="Enviado">Enviado</option>
+              <option value="Recibido">Recibido</option>
+              <option value="Despachado">Despachado</option>
+              <option value="UsadoImplantado">UsadoImplantado</option>
+              <option value="Devuelto">Devuelto</option>
+              <option value="DadoDeBaja">DadoDeBaja</option>
+              <option value="EstadoInicialDeclarado">EstadoInicialDeclarado</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="ckc-field">
+          <label class="ckc-field-label">occurred_at</label>
+          <input class="ckc-input" id="d-occurred-at" type="datetime-local" />
+        </div>
+
+        <div class="ckc-panel-title" style="margin-top:22px;">provenance</div>
+        <div class="ckc-field-row">
+          <div class="ckc-field">
+            <label class="ckc-field-label">adapter_id</label>
+            <input class="ckc-input" id="d-adapter-id" placeholder="p.ej. manual-console" />
+          </div>
+          <div class="ckc-field">
+            <label class="ckc-field-label">declared_at</label>
+            <input class="ckc-input" id="d-declared-at" type="datetime-local" />
+          </div>
+        </div>
+        <div class="ckc-field">
+          <label class="ckc-field-label">actor_id (UUID)</label>
+          <input class="ckc-input" id="d-actor-id" value="00000000-0000-0000-0000-000000000000" />
+          <div class="ckc-hint">El servidor siempre lo reemplaza por el actor de tu token — este valor no se usa para autorizar.</div>
+        </div>
+
+        <div class="ckc-field">
+          <label class="ckc-field-label">evidence (opcional)</label>
+          <div id="d-evidence-list"></div>
+          <button class="ckc-btn ckc-btn-ghost" id="d-add-evidence" type="button">+ agregar evidencia</button>
+        </div>
+
+        <div class="ckc-panel-title" style="margin-top:22px;">payload.attributes</div>
+        <div class="ckc-field">
+          <div id="d-attributes-list"></div>
+          <button class="ckc-btn ckc-btn-ghost" id="d-add-attribute" type="button">+ agregar atributo</button>
+        </div>
+
+        <label class="ckc-toggle-row" style="margin-top:16px;">
+          <input type="checkbox" id="d-raw-toggle" />
+          Editar el cuerpo de la petición como JSON crudo
+        </label>
+        <textarea class="ckc-textarea ckc-mono" id="d-raw-json" style="display:none; min-height:220px;"></textarea>
+
+        <div style="margin-top:6px;">
+          <button class="ckc-btn ckc-btn-accent" id="d-submit-btn">Declarar aserción</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="ckc-panel-title">Vista previa del cuerpo</div>
+        <div class="ckc-preview ckc-mono" id="d-preview">{}</div>
+
+        <div class="ckc-panel-title" style="margin-top:20px;">Respuesta</div>
+        <div id="d-response"><div class="ckc-response-empty">Todavía no se ha enviado ninguna aserción.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== HISTORY TAB ===================== -->
+  <div class="ckc-tab-panel" id="panel-history" style="display:none;">
+    <div class="ckc-panel-title">GET /v1/custody/units/{unit_id}/history</div>
+    <div style="display:flex; gap:10px; margin-bottom:18px; max-width:520px;">
+      <input class="ckc-input" id="h-unit-id" placeholder="unit_id, p.ej. SN-004521" />
+      <button class="ckc-btn ckc-btn-accent" id="h-submit-btn">Consultar</button>
+    </div>
+    <div id="h-response"><div class="ckc-response-empty">Ingresa un unit_id para ver su cadena de custodia.</div></div>
+  </div>
+
+  <!-- ===================== STATE TAB ===================== -->
+  <div class="ckc-tab-panel" id="panel-state" style="display:none;">
+    <div class="ckc-panel-title">GET /v1/custody/units/{unit_id}/state?at=...</div>
+    <div class="ckc-field-row" style="max-width:620px; margin-bottom:18px;">
+      <input class="ckc-input" id="s-unit-id" placeholder="unit_id" />
+      <input class="ckc-input" id="s-at" type="datetime-local" />
+    </div>
+    <button class="ckc-btn ckc-btn-accent" id="s-submit-btn" style="margin-bottom:18px;">Consultar estado</button>
+    <div id="s-response"><div class="ckc-response-empty">Consulta el estado derivado de una unidad en un instante específico.</div></div>
+  </div>
+
+  <!-- ===================== LOOKUP TAB ===================== -->
+  <div class="ckc-tab-panel" id="panel-lookup" style="display:none;">
+    <div class="ckc-panel-title">GET /v1/custody/assertions/{claim_id}</div>
+    <div style="display:flex; gap:10px; margin-bottom:18px; max-width:560px;">
+      <input class="ckc-input" id="l-claim-id" placeholder="claim_id (UUID)" />
+      <button class="ckc-btn ckc-btn-accent" id="l-submit-btn">Buscar</button>
+    </div>
+    <div id="l-response"><div class="ckc-response-empty">Busca una aserción puntual por su claim_id para verificar su procedencia.</div></div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  const root = document.currentScript.previousElementSibling;
+  function $(sel) { return root.querySelector(sel); }
+  function $all(sel) { return root.querySelectorAll(sel); }
+
+  function baseUrl() { return $('#ckc-baseurl').value.trim().replace(/\/+$/, ''); }
+  function authHeaders(extra) {
+    const h = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+    const t = $('#ckc-token').value.trim();
+    if (t) h['Authorization'] = 'Bearer ' + t;
+    return h;
+  }
+  function uuidv4() {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+  function nowLocalInputValue() {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  }
+  function escapeHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function fmtDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleString('es-CO'); } catch (e) { return iso; } }
+
+  // ---------- Tabs ----------
+  $all('.ckc-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      $all('.ckc-tab').forEach(function (t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      $all('.ckc-tab-panel').forEach(function (p) { p.style.display = 'none'; });
+      $('#panel-' + tab.dataset.tab).style.display = 'block';
+    });
+  });
+
+  // ---------- Health check ----------
+  $('#ckc-health-btn').addEventListener('click', async function () {
+    const dot = $('#ckc-health-dot'), text = $('#ckc-health-text');
+    dot.className = 'ckc-dot'; text.textContent = 'Verificando...';
+    try {
+      const res = await fetch(baseUrl() + '/healthz');
+      if (res.ok) { dot.className = 'ckc-dot ok'; text.textContent = 'Conectado — el kernel responde correctamente.'; }
+      else { dot.className = 'ckc-dot bad'; text.textContent = 'El servidor respondió con estado ' + res.status + '.'; }
+    } catch (e) {
+      dot.className = 'ckc-dot bad';
+      text.textContent = 'No se pudo conectar (revisa la URL, que el servidor esté corriendo, o CORS).';
+    }
+  });
+
+  // ---------- Error rendering (handles FastAPI 422 detail arrays) ----------
+  function renderError(container, err, status) {
+    if (status === 422 && err && Array.isArray(err)) {
+      const items = err.map(function (e) {
+        const loc = Array.isArray(e.loc) ? e.loc.join(' → ') : String(e.loc);
+        return '<div class="ckc-error-item"><span class="ckc-error-field">' + escapeHtml(loc) + '</span> — ' + escapeHtml(e.msg) + '</div>';
+      }).join('');
+      container.innerHTML = '<div class="ckc-error-card"><span class="ckc-error-code">HTTP 422 · Error de validación</span>' + items + '</div>';
+      return;
+    }
+    let detail = '';
+    try { detail = typeof err === 'string' ? err : JSON.stringify(err, null, 2); } catch (e) { detail = String(err); }
+    container.innerHTML =
+      '<div class="ckc-error-card"><span class="ckc-error-code">' + (status ? 'HTTP ' + status : 'Error de red') + '</span>' +
+      '<div class="ckc-mono" style="white-space:pre-wrap;">' + escapeHtml(detail) + '</div></div>';
+  }
+
+  // ---------- Tag card renderer ----------
+  function tagCardHtml(a) {
+    const claim = a.claim_id || '—';
+    const shortClaim = typeof claim === 'string' ? claim.slice(0, 8) : claim;
+    const prov = a.provenance || {};
+    const attrs = (a.payload && a.payload.attributes) || [];
+    let rows = [
+      ['unit_id', a.unit_id],
+      ['occurred_at', fmtDate(a.occurred_at)],
+      ['adapter_id', prov.adapter_id],
+      ['actor_id', prov.actor_id],
+      ['stream_version', a.stream_version],
+      ['global_position', a.global_position],
+    ];
+    let rowsHtml = rows.filter(function (r) { return r[1] !== undefined && r[1] !== null; })
+      .map(function (r) { return '<div class="ckc-tag-row"><span class="ckc-tag-key">' + r[0] + '</span><span class="ckc-tag-val">' + escapeHtml(String(r[1])) + '</span></div>'; })
+      .join('');
+    if (attrs.length) {
+      rowsHtml += attrs.map(function (at) {
+        return '<div class="ckc-tag-row"><span class="ckc-tag-key">' + escapeHtml(at.key) + '</span><span class="ckc-tag-val">' + escapeHtml(String(at.value)) + '</span></div>';
+      }).join('');
+    }
+    const rawId = 'raw-' + Math.random().toString(36).slice(2, 9);
+    return (
+      '<div class="ckc-tag">' +
+        '<div class="ckc-tag-head"><div><span class="ckc-tag-event">' + escapeHtml(a.event_type || 'evento') + '</span></div>' +
+        '<div class="ckc-tag-serial">claim<br/>' + escapeHtml(String(shortClaim)) + '&hellip;</div></div>' +
+        '<div class="ckc-tag-rows">' + rowsHtml + '</div>' +
+        '<span class="ckc-raw-toggle" data-raw-target="' + rawId + '">ver JSON completo</span>' +
+        '<pre class="ckc-preview ckc-mono" id="' + rawId + '" style="display:none; margin-top:8px;">' + escapeHtml(JSON.stringify(a, null, 2)) + '</pre>' +
+      '</div>'
+    );
+  }
+  function bindRawToggles(container) {
+    container.querySelectorAll('.ckc-raw-toggle').forEach(function (el) {
+      el.addEventListener('click', function () {
+        const target = container.querySelector('#' + el.dataset.rawTarget);
+        if (!target) return;
+        const showing = target.style.display !== 'none';
+        target.style.display = showing ? 'none' : 'block';
+        el.textContent = showing ? 'ver JSON completo' : 'ocultar JSON';
+      });
+    });
+  }
+
+  // =========================================================
+  // DECLARE — dynamic evidence + attribute lists
+  // =========================================================
+  $('#d-claim-id').value = uuidv4();
+  $('#d-gen-claim').addEventListener('click', function () { $('#d-claim-id').value = uuidv4(); refreshPreview(); });
+  $('#d-occurred-at').value = nowLocalInputValue();
+  $('#d-declared-at').value = nowLocalInputValue();
+
+  let evidenceRows = [];
+  let attributeRows = [];
+
+  function renderEvidenceRows() {
+    const wrap = $('#d-evidence-list');
+    wrap.innerHTML = evidenceRows.map(function (row, i) {
+      return '<div class="ckc-subfield-card"><div class="ckc-subfield-row evidence">' +
+        '<div><label class="ckc-field-label">uri</label><input class="ckc-input ev-uri" data-idx="' + i + '" value="' + escapeHtml(row.uri) + '" placeholder="https://..." /></div>' +
+        '<div><label class="ckc-field-label">sha256 (64 hex)</label><input class="ckc-input ev-sha" data-idx="' + i + '" value="' + escapeHtml(row.sha256) + '" placeholder="64 caracteres hexadecimales" /></div>' +
+        '<button class="ckc-btn-icon" data-remove-ev="' + i + '" type="button" title="Eliminar">&times;</button>' +
+      '</div></div>';
+    }).join('');
+    wrap.querySelectorAll('.ev-uri').forEach(function (el) { el.addEventListener('input', function () { evidenceRows[el.dataset.idx].uri = el.value; refreshPreview(); }); });
+    wrap.querySelectorAll('.ev-sha').forEach(function (el) {
+      el.addEventListener('input', function () {
+        evidenceRows[el.dataset.idx].sha256 = el.value;
+        el.classList.toggle('invalid', el.value.length > 0 && !/^[a-fA-F0-9]{64}$/.test(el.value));
+        refreshPreview();
+      });
+    });
+    wrap.querySelectorAll('[data-remove-ev]').forEach(function (el) {
+      el.addEventListener('click', function () { evidenceRows.splice(Number(el.dataset.removeEv), 1); renderEvidenceRows(); refreshPreview(); });
+    });
+  }
+  $('#d-add-evidence').addEventListener('click', function () { evidenceRows.push({ uri: '', sha256: '' }); renderEvidenceRows(); refreshPreview(); });
+
+  function renderAttributeRows() {
+    const wrap = $('#d-attributes-list');
+    wrap.innerHTML = attributeRows.map(function (row, i) {
+      return '<div class="ckc-subfield-card"><div class="ckc-subfield-row">' +
+        '<div><label class="ckc-field-label">key</label><input class="ckc-input at-key" data-idx="' + i + '" value="' + escapeHtml(row.key) + '" /></div>' +
+        '<div><label class="ckc-field-label">value</label><input class="ckc-input at-val" data-idx="' + i + '" value="' + escapeHtml(row.value) + '" /></div>' +
+        '<button class="ckc-btn-icon" data-remove-at="' + i + '" type="button" title="Eliminar">&times;</button>' +
+      '</div>' +
+      '<div style="margin-top:6px;"><label class="ckc-field-label">tipo del valor</label>' +
+      '<select class="ckc-select at-type" data-idx="' + i + '" style="max-width:160px;">' +
+        '<option value="string"' + (row.type === 'string' ? ' selected' : '') + '>texto</option>' +
+        '<option value="number"' + (row.type === 'number' ? ' selected' : '') + '>número</option>' +
+        '<option value="boolean"' + (row.type === 'boolean' ? ' selected' : '') + '>true/false</option>' +
+        '<option value="null"' + (row.type === 'null' ? ' selected' : '') + '>vacío (null)</option>' +
+      '</select></div></div>';
+    }).join('');
+    wrap.querySelectorAll('.at-key').forEach(function (el) { el.addEventListener('input', function () { attributeRows[el.dataset.idx].key = el.value; refreshPreview(); }); });
+    wrap.querySelectorAll('.at-val').forEach(function (el) { el.addEventListener('input', function () { attributeRows[el.dataset.idx].value = el.value; refreshPreview(); }); });
+    wrap.querySelectorAll('.at-type').forEach(function (el) { el.addEventListener('change', function () { attributeRows[el.dataset.idx].type = el.value; refreshPreview(); }); });
+    wrap.querySelectorAll('[data-remove-at]').forEach(function (el) {
+      el.addEventListener('click', function () { attributeRows.splice(Number(el.dataset.removeAt), 1); renderAttributeRows(); refreshPreview(); });
+    });
+  }
+  $('#d-add-attribute').addEventListener('click', function () { attributeRows.push({ key: '', value: '', type: 'string' }); renderAttributeRows(); refreshPreview(); });
+
+  function coerceAttrValue(row) {
+    if (row.type === 'null') return null;
+    if (row.type === 'boolean') return row.value === 'true' || row.value === true;
+    if (row.type === 'number') return row.value === '' ? 0 : Number(row.value);
+    return row.value;
+  }
+
+  function buildDeclareBody() {
+    const occurred = $('#d-occurred-at').value;
+    const declared = $('#d-declared-at').value;
+    return {
+      claim_id: $('#d-claim-id').value.trim(),
+      unit_id: $('#d-unit-id').value.trim(),
+      event_type: $('#d-event-type').value,
+      occurred_at: occurred ? new Date(occurred).toISOString() : new Date().toISOString(),
+      provenance: {
+        actor_id: $('#d-actor-id').value.trim(),
+        adapter_id: $('#d-adapter-id').value.trim(),
+        declared_at: declared ? new Date(declared).toISOString() : new Date().toISOString(),
+        evidence: evidenceRows.filter(function (r) { return r.uri || r.sha256; }).map(function (r) { return { uri: r.uri, sha256: r.sha256 }; })
+      },
+      payload: {
+        attributes: attributeRows.filter(function (r) { return r.key; }).map(function (r) { return { key: r.key, value: coerceAttrValue(r) }; })
+      }
+    };
+  }
+
+  const dPreview = $('#d-preview');
+  function refreshPreview() {
+    if ($('#d-raw-toggle').checked) return;
+    dPreview.textContent = JSON.stringify(buildDeclareBody(), null, 2);
+  }
+  ['#d-claim-id', '#d-unit-id', '#d-event-type', '#d-occurred-at', '#d-adapter-id', '#d-declared-at', '#d-actor-id']
+    .forEach(function (sel) { $(sel).addEventListener('input', refreshPreview); $(sel).addEventListener('change', refreshPreview); });
+  refreshPreview();
+
+  $('#d-raw-toggle').addEventListener('change', function (e) {
+    const rawArea = $('#d-raw-json');
+    if (e.target.checked) {
+      rawArea.value = JSON.stringify(buildDeclareBody(), null, 2);
+      rawArea.style.display = 'block';
+      dPreview.textContent = 'Editando cuerpo manualmente — ver el editor de la izquierda.';
+    } else { rawArea.style.display = 'none'; refreshPreview(); }
+  });
+
+  $('#d-submit-btn').addEventListener('click', async function () {
+    const btn = $('#d-submit-btn'), responseBox = $('#d-response');
+    let body;
+    if ($('#d-raw-toggle').checked) {
+      try { body = JSON.parse($('#d-raw-json').value); } catch (e) { renderError(responseBox, 'El JSON crudo no es válido: ' + e.message); return; }
+    } else { body = buildDeclareBody(); }
+
+    btn.disabled = true; btn.textContent = 'Enviando...';
+    try {
+      const res = await fetch(baseUrl() + '/v1/custody/assertions', { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) });
+      const data = await res.json().catch(function () { return null; });
+      if (!res.ok) {
+        renderError(responseBox, data ? (data.detail || data) : 'Sin cuerpo de respuesta', res.status);
+      } else {
+        const a = data.assertion || data;
+        responseBox.innerHTML = '<div class="ckc-chain"><div class="ckc-tag-wrap"><div class="ckc-tag-node"></div>' + tagCardHtml(a) + '</div></div>';
+        bindRawToggles(responseBox);
+        $('#d-claim-id').value = uuidv4();
+        refreshPreview();
+      }
+    } catch (e) {
+      renderError(responseBox, 'No se pudo contactar la API (' + e.message + '). Revisa la URL y CORS.');
+    } finally { btn.disabled = false; btn.textContent = 'Declarar aserción'; }
+  });
+
+  // =========================================================
+  // HISTORY
+  // =========================================================
+  $('#h-submit-btn').addEventListener('click', async function () {
+    const unitId = $('#h-unit-id').value.trim(), responseBox = $('#h-response');
+    if (!unitId) { renderError(responseBox, 'Ingresa un unit_id.'); return; }
+    responseBox.innerHTML = '<div class="ckc-response-empty">Consultando...</div>';
+    try {
+      const res = await fetch(baseUrl() + '/v1/custody/units/' + encodeURIComponent(unitId) + '/history', { headers: authHeaders() });
+      const data = await res.json().catch(function () { return null; });
+      if (!res.ok) { renderError(responseBox, data ? (data.detail || data) : 'Sin cuerpo de respuesta', res.status); return; }
+      const list = (data.assertions || []).slice().sort(function (a, b) { return (a.stream_version || 0) - (b.stream_version || 0); });
+      if (list.length === 0) { responseBox.innerHTML = '<div class="ckc-response-empty">Esta unidad no tiene aserciones registradas todavía.</div>'; return; }
+      responseBox.innerHTML = '<div class="ckc-chain"><div class="ckc-chain-line"></div>' +
+        list.map(function (a) { return '<div class="ckc-tag-wrap"><div class="ckc-tag-node"></div>' + tagCardHtml(a) + '</div>'; }).join('') + '</div>';
+      bindRawToggles(responseBox);
+    } catch (e) { renderError(responseBox, 'No se pudo contactar la API (' + e.message + '). Revisa la URL y CORS.'); }
+  });
+
+  // =========================================================
+  // STATE
+  // =========================================================
+  $('#s-submit-btn').addEventListener('click', async function () {
+    const unitId = $('#s-unit-id').value.trim(), atRaw = $('#s-at').value, responseBox = $('#s-response');
+    if (!unitId || !atRaw) { renderError(responseBox, 'Ingresa unit_id y una fecha/hora.'); return; }
+    responseBox.innerHTML = '<div class="ckc-response-empty">Consultando...</div>';
+    const at = new Date(atRaw).toISOString();
+    try {
+      const url = baseUrl() + '/v1/custody/units/' + encodeURIComponent(unitId) + '/state?at=' + encodeURIComponent(at);
+      const res = await fetch(url, { headers: authHeaders() });
+      const data = await res.json().catch(function () { return null; });
+      if (!res.ok) { renderError(responseBox, data ? (data.detail || data) : 'Sin cuerpo de respuesta', res.status); return; }
+      const state = data.state || data;
+      const rows = Object.keys(state).map(function (k) {
+        let v = state[k]; if (typeof v === 'object' && v !== null) v = JSON.stringify(v);
+        return '<div class="ckc-tag-row"><span class="ckc-tag-key">' + escapeHtml(k) + '</span><span class="ckc-tag-val">' + escapeHtml(String(v)) + '</span></div>';
+      }).join('');
+      responseBox.innerHTML = '<div class="ckc-tag"><div class="ckc-tag-head"><span class="ckc-tag-badge">estado derivado</span></div><div class="ckc-tag-rows">' + rows + '</div></div>';
+    } catch (e) { renderError(responseBox, 'No se pudo contactar la API (' + e.message + '). Revisa la URL y CORS.'); }
+  });
+
+  // =========================================================
+  // LOOKUP
+  // =========================================================
+  $('#l-submit-btn').addEventListener('click', async function () {
+    const claimId = $('#l-claim-id').value.trim(), responseBox = $('#l-response');
+    if (!claimId) { renderError(responseBox, 'Ingresa un claim_id.'); return; }
+    responseBox.innerHTML = '<div class="ckc-response-empty">Buscando...</div>';
+    try {
+      const res = await fetch(baseUrl() + '/v1/custody/assertions/' + encodeURIComponent(claimId), { headers: authHeaders() });
+      const data = await res.json().catch(function () { return null; });
+      if (!res.ok) { renderError(responseBox, data ? (data.detail || data) : 'Sin cuerpo de respuesta', res.status); return; }
+      const a = data.assertion || data;
+      responseBox.innerHTML = '<div class="ckc-chain"><div class="ckc-tag-wrap"><div class="ckc-tag-node"></div>' + tagCardHtml(a) + '</div></div>';
+      bindRawToggles(responseBox);
+    } catch (e) { renderError(responseBox, 'No se pudo contactar la API (' + e.message + '). Revisa la URL y CORS.'); }
+  });
+
+})();
+</script>
+
+</body>
+</html>

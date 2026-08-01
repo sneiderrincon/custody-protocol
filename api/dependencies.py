@@ -90,6 +90,14 @@ class KernelContainer:
         self.rejection_log: RejectionLog
         self.actor_registry: ActorRegistry = InMemoryActorRegistry()
         self._session: Session | None = None
+        self.actor_registry.add(
+            Actor(
+            actor_id=UUID("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+            legal_name="Development Actor",
+            status=ActorStatus.ACTIVE,
+            trust_level=TrustLevel.HIGH,
+        )
+)
 
         if database_url:
             session = build_session_factory(database_url)()
