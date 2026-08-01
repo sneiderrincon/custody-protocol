@@ -95,7 +95,9 @@ def unit_history(
     """Return a derived unit history from the read model."""
 
     projection = CustodyProjectionEngine()
-    return HistoryResponse(assertions=projection.history(unit_id, container.event_store.all()))
+    return HistoryResponse(
+        assertions=projection.history(unit_id, container.event_store.stream(unit_id))
+    )
 
 
 @router.get("/units/{unit_id}/state", response_model=StateResponse)
@@ -107,7 +109,9 @@ def unit_state(
     """Return derived unit state at a domain timestamp."""
 
     projection = CustodyProjectionEngine()
-    return StateResponse(state=projection.state_at(unit_id, at, container.event_store.all()))
+    return StateResponse(
+        state=projection.state_at(unit_id, at, container.event_store.stream(unit_id))
+    )
 
 
 @router.get("/assertions/{claim_id}", response_model=AssertionResponse)

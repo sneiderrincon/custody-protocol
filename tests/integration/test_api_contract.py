@@ -242,3 +242,51 @@ def test_api_rate_limits_write_endpoint(monkeypatch) -> None:
         get_write_rate_limiter.cache_clear()
         monkeypatch.delenv("RATE_LIMIT_WRITE_MAX_REQUESTS", raising=False)
         monkeypatch.delenv("RATE_LIMIT_WRITE_WINDOW_SECONDS", raising=False)
+
+
+def test_api_unit_reads_use_indexed_stream_not_full_log_scan(monkeypatch) -> None:
+    monkeypatch.setenv("JWT_SECRET_KEY", JWT_TEST_SECRET)
+    get_container.cache_clear()
+    actor_id = uuid4()
+    _register_active_actor(actor_id)
+    client = TestClient(create_app())
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    unit_id = "stream-not-scan-unit"
+
+    response = client.post(
+        "/v1/custody/assertions",
+        json={
+            "claim_id": str(uuid4()),
+            "unit_id": unit_id,
+            "event_type": CustodyEventType.MANUFACTURED.value,
+            "occurred_at": now.isoformat(),
+            "provenance": {
+                "actor_id": str(actor_id),
+                "adapter_id": "api-test-adapter",
+                "declared_at": now.isoformat(),
+                "evidence": [],
+            },
+            "payload": {"attributes": []},
+        },
+        headers=_bearer_header(actor_id),
+    )
+    assert response.status_code == HTTP_CREATED
+
+    original_all = get_container().event_store.all
+
+    def _forbid_full_scan() -> tuple[object, ...]:
+        msg = "unit-scoped read must use stream(unit_id), not all()"
+        raise AssertionError(msg)
+
+    get_container().event_store.all = _forbid_full_scan  # type: ignore[method-assign]
+    try:
+        history_response = client.get(f"/v1/custody/units/{unit_id}/history")
+        state_response = client.get(
+            f"/v1/custody/units/{unit_id}/state", params={"at": now.isoformat()}
+        )
+    finally:
+        get_container().event_store.all = original_all  # type: ignore[method-assign]
+
+    assert history_response.status_code == HTTP_OK
+    assert len(history_response.json()["assertions"]) == 1
+    assert state_response.status_code == HTTP_OK
