@@ -13,6 +13,14 @@ class RuleViolationError(DomainError):
     """Raised when a custody assertion violates a domain rule."""
 
 
+class TemporalViolationError(RuleViolationError):
+    """Raised when a claim's occurred_at precedes the unit's latest known event."""
+
+
+class PrecedenceViolationError(RuleViolationError):
+    """Raised when a claim's event type is not a valid successor in the unit's history."""
+
+
 @dataclass(frozen=True, slots=True)
 class VersionedCustodyRuleEngine:
     """Small, explicit rule engine for custody consistency.
@@ -50,7 +58,7 @@ class VersionedCustodyRuleEngine:
                 f"{draft.event_type} occurred at {draft.occurred_at.isoformat()} before "
                 f"latest event {latest.event_type} at {latest.occurred_at.isoformat()}"
             )
-            raise RuleViolationError(msg)
+            raise TemporalViolationError(msg)
 
     def _validate_precedence(
         self,
@@ -61,13 +69,13 @@ class VersionedCustodyRuleEngine:
             if draft.event_type in _INITIAL_EVENTS:
                 return
             msg = f"{draft.event_type} cannot start a custody stream"
-            raise RuleViolationError(msg)
+            raise PrecedenceViolationError(msg)
 
         previous = history[-1].event_type
         allowed = self._allowed_after or _DEFAULT_ALLOWED_AFTER
         if draft.event_type not in allowed[previous]:
             msg = f"{draft.event_type} cannot follow {previous}"
-            raise RuleViolationError(msg)
+            raise PrecedenceViolationError(msg)
 
 
 _INITIAL_EVENTS = frozenset(

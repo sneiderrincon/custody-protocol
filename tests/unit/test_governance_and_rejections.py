@@ -94,12 +94,45 @@ def test_active_actor_can_declare_custody_assertion() -> None:
     assert assertion.stream_version == 1
 
 
+def test_temporal_violation_is_classified_and_recorded() -> None:
+    actor_id = uuid4()
+    registry = InMemoryActorRegistry()
+    registry.add(
+        Actor(
+            actor_id=actor_id,
+            legal_name="Anchor Hospital",
+            status=ActorStatus.ACTIVE,
+            trust_level=TrustLevel.STANDARD,
+        )
+    )
+    store = InMemoryCustodyEventStore()
+    rejection_log = InMemoryRejectionLog()
+    service = DeclareCustodyAssertionService(
+        store,
+        actor_registry=registry,
+        rejection_log=rejection_log,
+    )
+    later = datetime(2026, 1, 5, tzinfo=UTC)
+    earlier = datetime(2026, 1, 1, tzinfo=UTC)
+    service.handle(
+        _command(CustodyEventType.MANUFACTURED, actor_id=actor_id, occurred_at=later)
+    )
+
+    with pytest.raises(RuleViolationError):
+        service.handle(
+            _command(CustodyEventType.SHIPPED, actor_id=actor_id, occurred_at=earlier)
+        )
+
+    assert rejection_log.all()[-1].reason == RejectionReason.TEMPORAL_VIOLATION
+
+
 def _command(
     event_type: CustodyEventType,
     *,
     actor_id: object | None = None,
+    occurred_at: datetime | None = None,
 ) -> DeclareCustodyAssertion:
-    now = datetime(2026, 1, 1, tzinfo=UTC)
+    now = occurred_at or datetime(2026, 1, 1, tzinfo=UTC)
     return DeclareCustodyAssertion(
         claim_id=uuid4(),
         unit_id="governance-unit",

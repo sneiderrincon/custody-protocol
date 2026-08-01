@@ -10,7 +10,12 @@ from kernel.custody.domain.aggregate import DeviceCustodyAggregate
 from kernel.custody.domain.assertions import CommittedCustodyAssertion, CustodyAssertionDraft
 from kernel.custody.domain.events import RejectionReason
 from kernel.custody.domain.rejections import RejectedInconsistency
-from kernel.custody.domain.rules import RuleViolationError, VersionedCustodyRuleEngine
+from kernel.custody.domain.rules import (
+    PrecedenceViolationError,
+    RuleViolationError,
+    TemporalViolationError,
+    VersionedCustodyRuleEngine,
+)
 from kernel.custody.ports.event_store import CustodyEventStore
 from kernel.custody.ports.rejection_log import RejectionLog
 from kernel.governance.domain.policies import (
@@ -104,7 +109,9 @@ class DeclareCustodyAssertionService:
 
 
 def _rule_rejection_reason(error: RuleViolationError) -> RejectionReason:
-    detail = str(error)
-    if "occurred at" in detail:
+    if isinstance(error, TemporalViolationError):
         return RejectionReason.TEMPORAL_VIOLATION
-    return RejectionReason.PRECEDENCE_VIOLATION
+    if isinstance(error, PrecedenceViolationError):
+        return RejectionReason.PRECEDENCE_VIOLATION
+    msg = f"unclassified rule violation: {error}"
+    raise NotImplementedError(msg)
