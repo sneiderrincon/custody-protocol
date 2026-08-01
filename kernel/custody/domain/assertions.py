@@ -38,4 +38,15 @@ class CommittedCustodyAssertion(CustodyAssertionDraft):
     global_position: int = Field(ge=1)
     stream_version: int = Field(ge=1)
 
+    def matches_draft(self, draft: CustodyAssertionDraft) -> bool:
+        """Return whether this committed assertion has the same content as ``draft``.
+
+        Used by event-store adapters to resolve idempotent replays: two
+        assertions match when everything but their store-assigned positions
+        is identical.
+        """
+
+        committed_content = self.model_dump(exclude={"global_position", "stream_version"})
+        return committed_content == draft.model_dump()
+
 

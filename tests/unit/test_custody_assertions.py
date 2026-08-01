@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from kernel.custody.application.commands import DeclareCustodyAssertion
 from kernel.custody.application.projections import CustodyProjectionEngine
 from kernel.custody.application.services import DeclareCustodyAssertionService
+from kernel.custody.domain.assertions import CommittedCustodyAssertion, CustodyAssertionDraft
 from kernel.custody.domain.events import CustodyEventType
 from kernel.custody.domain.rules import RuleViolationError
 from kernel.custody.domain.value_objects import (
@@ -106,6 +107,19 @@ def test_state_is_derived_by_replaying_history() -> None:
 
     assert state.event_type == CustodyEventType.SHIPPED
     assert state.as_of_stream_version == SHIPPED_STREAM_VERSION
+
+
+def test_committed_assertion_matches_draft_ignores_store_assigned_fields() -> None:
+    command = _command(CustodyEventType.MANUFACTURED)
+    draft = CustodyAssertionDraft(**command.model_dump())
+    committed = CommittedCustodyAssertion(
+        **draft.model_dump(), global_position=7, stream_version=3
+    )
+
+    assert committed.matches_draft(draft)
+
+    different = _command(CustodyEventType.SHIPPED, unit_id=command.unit_id)
+    assert not committed.matches_draft(CustodyAssertionDraft(**different.model_dump()))
 
 
 def _command(

@@ -27,7 +27,7 @@ class InMemoryCustodyEventStore:
     ) -> CommittedCustodyAssertion:
         existing = self._by_claim_id.get(draft.claim_id)
         if existing is not None:
-            if _same_assertion(existing, draft):
+            if existing.matches_draft(draft):
                 return existing
             msg = f"claim_id {draft.claim_id} was reused for different assertion content"
             raise IdempotencyConflictError(msg)
@@ -54,9 +54,4 @@ class InMemoryCustodyEventStore:
 
     def all(self) -> tuple[CommittedCustodyAssertion, ...]:
         return tuple(self._log)
-
-
-def _same_assertion(committed: CommittedCustodyAssertion, draft: CustodyAssertionDraft) -> bool:
-    committed_content = committed.model_dump(exclude={"global_position", "stream_version"})
-    return committed_content == draft.model_dump()
 
