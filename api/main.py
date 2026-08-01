@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from api.dependencies import get_container
 from api.routes.custody import router as custody_router
@@ -38,6 +39,20 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
+def _configured_cors_origins() -> list[str]:
+    """Read allowed browser origins from CORS_ALLOWED_ORIGINS (comma-separated).
+
+    Fails closed like the rest of this API's configuration (JWT_SECRET_KEY,
+    ActorRegistry, see ADR 0002/0010): unset means no browser origin is
+    allowed, not "allow everything". Set to the console's origin (or `*` for
+    local development only) to use it — see
+    docs/decisions/0014-cors-configuration.md.
+    """
+
+    raw = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+
 def create_app() -> FastAPI:
     """Create the Kernel API application."""
 
@@ -47,6 +62,15 @@ def create_app() -> FastAPI:
         description="Append-only API for verifiable medical-device custody claims.",
         lifespan=_lifespan,
     )
+    origins = _configured_cors_origins()
+    if origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_credentials=True,
+            allow_methods=["GET", "POST"],
+            allow_headers=["Authorization", "Content-Type"],
+        )
     app.include_router(custody_router)
     app.include_router(health_router)
     return app
