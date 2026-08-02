@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.dependencies import get_container
+from api.routes.catalog import router as catalog_router
 from api.routes.custody import router as custody_router
 from api.routes.health import router as health_router
 

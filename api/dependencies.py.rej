@@ -1,0 +1,30 @@
+diff a/api/dependencies.py b/api/dependencies.py	(rejected hunks)
+@@ -87,6 +123,7 @@ class KernelContainer:
+         self.event_store: CustodyEventStore
+         self.rejection_log: RejectionLog
+         self.actor_registry: ActorRegistry = InMemoryActorRegistry()
++        self.device_catalog: DeviceCatalogRepository
+         self._session: Session | None = None
+ 
+         if database_url:
+@@ -98,15 +135,20 @@ class KernelContainer:
+             self.rejection_log = _CommittingRejectionLog(
+                 SqlAlchemyRejectionLog(session), session
+             )
++            self.device_catalog = _CommittingDeviceCatalogRepository(
++                SqlAlchemyDeviceCatalogRepository(session), session
++            )
+         else:
+             self.event_store = InMemoryCustodyEventStore()
+             self.rejection_log = InMemoryRejectionLog()
++            self.device_catalog = InMemoryDeviceCatalogRepository()
+ 
+         self.declare_service = DeclareCustodyAssertionService(
+             self.event_store,
+             actor_registry=self.actor_registry,
+             rejection_log=self.rejection_log,
+         )
++        self.catalog_service = DeviceCatalogService(self.device_catalog)
+ 
+     def ping(self) -> None:
+         """Verify the backing store is reachable; raises if not.

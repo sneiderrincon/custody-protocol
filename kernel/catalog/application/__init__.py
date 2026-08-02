@@ -1,0 +1,1 @@
+"""Device Catalog application services."""

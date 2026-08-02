@@ -10,6 +10,13 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from kernel.catalog.application.services import DeviceCatalogService
+from kernel.catalog.domain.device import CanonicalDevice
+from kernel.catalog.infrastructure.in_memory_device_repository import (
+    InMemoryDeviceCatalogRepository,
+)
+from kernel.catalog.infrastructure.sqlalchemy_repository import SqlAlchemyDeviceCatalogRepository
+from kernel.catalog.ports.device_repository import DeviceCatalogRepository
 from kernel.custody.application.services import DeclareCustodyAssertionService
 from kernel.custody.domain.assertions import CommittedCustodyAssertion, CustodyAssertionDraft
 from kernel.custody.domain.rejections import RejectedInconsistency
@@ -79,6 +86,35 @@ class _CommittingRejectionLog:
         return self._inner.all()
 
 
+@dataclass
+class _CommittingDeviceCatalogRepository:
+    """Commits the bound session after each successful write.
+
+    Same reasoning as ``_CommittingCustodyEventStore``: the SQLAlchemy
+    repository leaves transaction boundaries to its caller, and
+    ``KernelContainer`` is the long-lived composition root that owns them.
+    """
+
+    _inner: SqlAlchemyDeviceCatalogRepository
+    _session: Session
+
+    def get(self, device_id: UUID) -> CanonicalDevice | None:
+        return self._inner.get(device_id)
+
+    def find_by_udi_di(self, udi_di: str) -> CanonicalDevice | None:
+        return self._inner.find_by_udi_di(udi_di)
+
+    def add(self, device: CanonicalDevice) -> CanonicalDevice:
+        result = self._inner.add(device)
+        self._session.commit()
+        return result
+
+    def update(self, device: CanonicalDevice) -> CanonicalDevice:
+        result = self._inner.update(device)
+        self._session.commit()
+        return result
+
+
 class KernelContainer:
     """Small composition root for local API execution."""
 
@@ -88,7 +124,7 @@ class KernelContainer:
         database_url = os.getenv("DATABASE_URL")
         self.event_store: CustodyEventStore
         self.rejection_log: RejectionLog
-        self.actor_registry: ActorRegistry = InMemoryActorRegistry()
+        
         self._session: Session | None = None
         self.actor_registry.add(
             Actor(
@@ -119,7 +155,7 @@ class KernelContainer:
         )
 
     def ping(self) -> None:
-        """Verify the backing store is reachable; raises if not.
+        """Verify the backself.actor_registry: ActorRegistry = InMemoryActorRegistry()ing store is reachable; raises if not.
 
         Used by the health endpoint (api/routes/health.py) and by startup
         validation (api/main.py) for readiness checks. In-memory mode has no

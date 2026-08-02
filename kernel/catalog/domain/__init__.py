@@ -1,0 +1,1 @@
+"""Device Catalog domain model."""
