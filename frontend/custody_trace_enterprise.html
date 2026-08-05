@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Custody Protocol - Enterprise Traceability</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #0B0D0F;
+  --panel: #14171B;
+  --panel-2: #111418;
+  --panel-3: #181C21;
+  --line: #252A31;
+  --line-soft: #1E232A;
+  --text: #E9ECEF;
+  --muted: #9AA3AD;
+  --faint: #66707B;
+  --accent: #E8A33D;
+  --accent-quiet: #2C2419;
+  --success: #4C9A6A;
+  --success-quiet: #18251D;
+  --danger: #D1665A;
+  --danger-quiet: #2A1B19;
+  --code: #C9D1D9;
+  --focus: rgba(232, 163, 61, 0.34);
+}
+
+* { box-sizing: border-box; }
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body { overflow-x: hidden; }
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  background: var(--bg);
+}
+
+.rail {
+  border-right: 1px solid var(--line-soft);
+  background: #0D1013;
+  padding: 22px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 24px;
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background: var(--panel);
+}
+
+.brand-name {
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.brand-subtitle {
+  color: var(--faint);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.org-card {
+  border: 1px solid var(--line-soft);
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+}
+
+.org-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.org-label {
+  color: var(--faint);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.org-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.org-trust {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--success);
+}
+
+.nav-group {
+  display: grid;
+  gap: 4px;
+}
+
+.nav-caption {
+  color: var(--faint);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 14px 10px 6px;
+}
+
+.nav-button {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 7px;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+}
+
+.nav-button:hover {
+  background: #111419;
+  color: var(--text);
+}
+
+.nav-button.active {
+  background: var(--panel);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.nav-button.active .nav-icon {
+  color: var(--accent);
+}
+
+.nav-icon {
+  width: 17px;
+  height: 17px;
+  color: var(--faint);
+  flex: 0 0 auto;
+}
+
+.rail-footer {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 18px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 14px;
+}
+
+.signal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--faint);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.signal-value {
+  color: var(--muted);
+}
+
+.main {
+  min-width: 0;
+  padding: 24px 28px 48px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.crumb strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.chip,
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 25px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 9px;
+  color: var(--muted);
+  background: var(--panel-2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.chip.mono,
+.badge.mono {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+}
+
+.badge.accent {
+  color: var(--accent);
+  border-color: #514028;
+  background: var(--accent-quiet);
+}
+
+.badge.success {
+  color: var(--success);
+  border-color: #254333;
+  background: var(--success-quiet);
+}
+
+.badge.danger {
+  color: var(--danger);
+  border-color: #55302B;
+  background: var(--danger-quiet);
+}
+
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 0 24px;
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 9px;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 30px;
+  line-height: 1.14;
+  letter-spacing: 0;
+  font-weight: 650;
+}
+
+.page-copy {
+  color: var(--muted);
+  max-width: 780px;
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.declare-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 22px;
+  align-items: start;
+}
+
+.form-stack,
+.content-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.section {
+  border: 1px solid var(--line-soft);
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.section-title svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.section-kicker {
+  color: var(--faint);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.field-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+}
+
+.field.full {
+  grid-column: 1 / -1;
+}
+
+label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 9px 11px;
+  outline: none;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 94px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+  outline: 3px solid var(--focus);
+  outline-offset: 0;
+}
+
+.mono,
+code,
+pre,
+.uuid {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.hint {
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.inline-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.inline-row input,
+.search-input-wrap input {
+  flex: 1 1 240px;
+  min-width: 0;
+  width: auto;
+}
+
+.btn {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-3);
+  color: var(--text);
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.btn:hover {
+  border-color: #3A414A;
+  background: #1C2127;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #171006;
+}
+
+.btn.primary:hover {
+  background: #F0AD49;
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--muted);
+}
+
+.btn.icon-only {
+  width: 38px;
+  padding: 0;
+}
+
+.btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.preview-panel {
+  position: sticky;
+  top: 22px;
+  border: 1px solid var(--line);
+  background: #0F1216;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.preview-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.preview-title svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.json-preview {
+  margin: 0;
+  padding: 16px;
+  color: var(--code);
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 690px;
+  overflow: auto;
+}
+
+.preview-foot {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--line-soft);
+}
+
+.preview-stat {
+  padding: 12px;
+  border-right: 1px solid var(--line-soft);
+}
+
+.preview-stat:last-child {
+  border-right: 0;
+}
+
+.preview-stat span {
+  display: block;
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.preview-stat strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+}
+
+.timeline-shell {
+  position: relative;
+  padding-left: 34px;
+}
+
+.timeline-shell::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--line);
+}
+
+.event-card {
+  position: relative;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.event-card::before {
+  content: "";
+  position: absolute;
+  left: -29px;
+  top: 21px;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  border: 2px solid var(--accent);
+  background: var(--bg);
+}
+
+.event-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 13px;
+}
+
+.event-name {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.event-name svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.event-date {
+  color: var(--faint);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.event-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.fact {
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  padding: 10px;
+  background: var(--panel-2);
+  min-width: 0;
+}
+
+.fact-label {
+  color: var(--faint);
+  font-size: 11px;
+  margin-bottom: 5px;
+}
+
+.fact-value {
+  color: var(--text);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.event-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.snapshot-card {
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 16px;
+  min-height: 138px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.snapshot-icon {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background: var(--panel-2);
+}
+
+.snapshot-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.snapshot-label {
+  color: var(--faint);
+  font-size: 12px;
+  margin-top: 14px;
+}
+
+.snapshot-value {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 650;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.state-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 18px;
+}
+
+.audit-panel {
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 16px;
+}
+
+.audit-list {
+  display: grid;
+  gap: 11px;
+  margin-top: 14px;
+}
+
+.audit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.audit-item svg {
+  width: 15px;
+  height: 15px;
+  color: var(--success);
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.lookup-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.search-box {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 16px;
+}
+
+.search-input-wrap {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.technical-card {
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.technical-head {
+  padding: 16px;
+  border-bottom: 1px solid var(--line-soft);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.technical-title {
+  font-size: 15px;
+  font-weight: 650;
+  margin-bottom: 7px;
+}
+
+.technical-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tech-row {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  border-right: 1px solid var(--line-soft);
+  min-width: 0;
+}
+
+.tech-row:nth-child(2n) {
+  border-right: 0;
+}
+
+.tech-row:last-child,
+.tech-row:nth-last-child(2) {
+  border-bottom: 0;
+}
+
+.json-drawer {
+  display: none;
+  margin-top: 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  background: #0F1216;
+  overflow: hidden;
+}
+
+.json-drawer.open {
+  display: block;
+}
+
+.json-drawer pre {
+  margin: 0;
+  padding: 13px;
+  color: var(--code);
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (max-width: 1160px) {
+  .declare-layout,
+  .state-layout,
+  .lookup-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-panel {
+    position: static;
+  }
+
+  .snapshot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .rail {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .rail-footer {
+    position: static;
+    margin-top: 18px;
+  }
+
+  .main {
+    padding: 20px 16px 36px;
+  }
+
+  .topbar,
+  .page-head,
+  .event-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .meta-strip {
+    justify-content: flex-start;
+  }
+
+  .field-grid,
+  .field-grid.three,
+  .event-grid,
+  .technical-body {
+    grid-template-columns: 1fr;
+  }
+
+  .tech-row,
+  .tech-row:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .snapshot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 25px;
+  }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-5"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 16l9 5 9-5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z"/><path d="M9 3v15"/><path d="M15 6v15"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 9l-4 3 4 3"/><path d="M16 9l4 3-4 3"/><path d="M14 5l-4 14"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-5 7-12a7 7 0 1 0-14 0c0 7 7 12 7 12z"/><circle cx="12" cy="9" r="2"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <div class="brand-mark"><svg class="icon"><use href="#i-shield"></use></svg></div>
+      <div>
+        <div class="brand-name">Custody Protocol</div>
+        <div class="brand-subtitle">append-only kernel</div>
+      </div>
+    </div>
+
+    <div class="org-card">
+      <div class="org-meta">
+        <span class="org-label">Workspace</span>
+        <span class="badge success">Verified</span>
+      </div>
+      <div class="org-name">Andean Medical Trust Network</div>
+      <div class="org-trust"><span class="pulse"></span> INVIMA/FDA audit channel active</div>
+    </div>
+
+    <nav class="nav-group" aria-label="Módulos principales">
+      <div class="nav-caption">Custody</div>
+      <button class="nav-button active" data-page-target="declare" type="button"><svg class="icon nav-icon"><use href="#i-file"></use></svg> Declare Assertion</button>
+      <button class="nav-button" data-page-target="history" type="button"><svg class="icon nav-icon"><use href="#i-clock"></use></svg> History</button>
+      <button class="nav-button" data-page-target="state" type="button"><svg class="icon nav-icon"><use href="#i-layers"></use></svg> Current State</button>
+      <button class="nav-button" data-page-target="lookup" type="button"><svg class="icon nav-icon"><use href="#i-search"></use></svg> Claim Lookup</button>
+    </nav>
+
+    <div class="rail-footer">
+      <div class="signal-row"><span>stream health</span><span class="signal-value">99.99%</span></div>
+      <div class="signal-row"><span>global_position</span><span class="signal-value">8,214,605</span></div>
+      <div class="signal-row"><span>hash policy</span><span class="signal-value">SHA-256</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <svg class="icon"><use href="#i-lock"></use></svg>
+        <span>Critical infrastructure</span>
+        <span>/</span>
+        <strong id="activeCrumb">Declare Assertion</strong>
+      </div>
+      <div class="top-actions">
+        <span class="chip mono">actor: act_8F39B2A0</span>
+        <span class="chip">Manufacturer</span>
+        <button class="btn ghost" type="button"><svg class="icon"><use href="#i-activity"></use></svg> Audit mode</button>
+      </div>
+    </header>
+
+    <section class="page active" id="page-declare">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Immutable event intake</div>
+          <h1>Declare Assertion</h1>
+          <p class="page-copy">Declaración estructurada para eventos de fabricación, distribución, recepción clínica y disposición. El preview representa el cuerpo append-only que será firmado, validado y anexado al stream.</p>
+        </div>
+        <div class="meta-strip">
+          <span class="badge accent">append-only</span>
+          <span class="badge">fail-closed</span>
+          <span class="badge success">schema valid</span>
+        </div>
+      </div>
+
+      <div class="declare-layout">
+        <form class="form-stack" id="assertionForm">
+          <section class="section">
+            <div class="section-head">
+              <div class="section-title"><svg class="icon"><use href="#i-shield"></use></svg> Identity</div>
+              <div class="section-kicker">claim envelope</div>
+            </div>
+            <div class="field-grid">
+              <div class="field full">
+                <label for="claimId">claim_id</label>
+                <div class="inline-row">
+                  <input class="mono" id="claimId" name="claimId" value="clm_018fb6b2-47a6-7e18-91e1-3a6dd8fb3a21" />
+                  <button class="btn icon-only" id="regenerateClaim" type="button" aria-label="Generar claim_id"><svg class="icon"><use href="#i-arrow"></use></svg></button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="unitId">unit_id</label>
+                <input class="mono" id="unitId" name="unitId" value="udi_di:00812345678901/serial:MX-2048-1190" />
+              </div>
+              <div class="field">
+                <label for="deviceClass">device_class</label>
+                <select id="deviceClass" name="deviceClass">
+                  <option>Class II sterile implant</option>
+                  <option>Class III life-support device</option>
+                  <option>Diagnostic equipment</option>
+                  <option>Reusable surgical instrument</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <div class="section-title"><svg class="icon"><use href="#i-activity"></use></svg> Event</div>
+              <div class="section-kicker">custody mutation</div>
+            </div>
+            <div class="field-grid three">
+              <div class="field">
+                <label for="eventType">event_type</label>
+                <select id="eventType" name="eventType">
+                  <option value="MANUFACTURED">MANUFACTURED</option>
+                  <option value="QC_RELEASED">QC_RELEASED</option>
+                  <option value="DISPATCHED">DISPATCHED</option>
+                  <option value="RECEIVED">RECEIVED</option>
+                  <option value="STERILIZED">STERILIZED</option>
+                  <option value="RECALLED">RECALLED</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="occurredAt">occurred_at</label>
+                <input id="occurredAt" name="occurredAt" type="datetime-local" />
+              </div>
+              <div class="field">
+                <label for="severity">assurance_level</label>
+                <select id="severity" name="severity">
+                  <option value="regulatory">regulatory</option>
+                  <option value="clinical">clinical</option>
+                  <option value="operational">operational</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <div class="section-title"><svg class="icon"><use href="#i-user"></use></svg> Provenance</div>
+              <div class="section-kicker">who declared it</div>
+            </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="actorId">actor_id</label>
+                <input class="mono" id="actorId" name="actorId" value="act_8F39B2A0-3E5C-42D7-9B63-45E1B9A12F7C" />
+              </div>
+              <div class="field">
+                <label for="adapterId">adapter_id</label>
+                <input class="mono" id="adapterId" name="adapterId" value="bff.medical-device.intake.v1" />
+              </div>
+              <div class="field">
+                <label for="organization">organization</label>
+                <input id="organization" name="organization" value="Andean Medical Trust Network" />
+              </div>
+              <div class="field">
+                <label for="trustLevel">trust_level</label>
+                <select id="trustLevel" name="trustLevel">
+                  <option value="REGULATED">REGULATED</option>
+                  <option value="VERIFIED">VERIFIED</option>
+                  <option value="PROVISIONAL">PROVISIONAL</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <div class="section-title"><svg class="icon"><use href="#i-package"></use></svg> Payload</div>
+              <div class="section-kicker">state deltas</div>
+            </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="owner">current_owner</label>
+                <input id="owner" name="owner" value="Hospital Universitario San Ignacio" />
+              </div>
+              <div class="field">
+                <label for="location">location</label>
+                <input id="location" name="location" value="Bogotá DC / OR-7 sterile storage" />
+              </div>
+              <div class="field">
+                <label for="status">status</label>
+                <select id="status" name="status">
+                  <option value="IN_CUSTODY">IN_CUSTODY</option>
+                  <option value="RELEASED">RELEASED</option>
+                  <option value="QUARANTINED">QUARANTINED</option>
+                  <option value="RECALLED">RECALLED</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="lot">lot_number</label>
+                <input class="mono" id="lot" name="lot" value="LOT-2026-08-BOG-19" />
+              </div>
+              <div class="field full">
+                <label for="notes">payload_notes</label>
+                <textarea id="notes" name="notes">Temperature range verified, tamper seal intact, sterile pouch scanned at receiving bay.</textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <div class="section-title"><svg class="icon"><use href="#i-lock"></use></svg> Evidence</div>
+              <div class="section-kicker">hash anchored</div>
+            </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="evidenceUri">evidence_uri</label>
+                <input class="mono" id="evidenceUri" name="evidenceUri" value="s3://custody-evidence/2026/08/receiving-slip-1190.pdf" />
+              </div>
+              <div class="field">
+                <label for="sha256">sha256</label>
+                <input class="mono" id="sha256" name="sha256" value="6f38a9c11d4478e8b6af746d9a6c3e5c2f901be21a1bbfb3d4410972c47fd940" />
+              </div>
+            </div>
+            <div class="inline-row" style="margin-top:14px;">
+              <button class="btn primary" type="button"><svg class="icon"><use href="#i-check"></use></svg> Declare assertion</button>
+              <button class="btn" type="button"><svg class="icon"><use href="#i-code"></use></svg> Validate payload</button>
+              <span class="hint">No destructive updates. Every accepted declaration appends a new event.</span>
+            </div>
+          </section>
+        </form>
+
+        <aside class="preview-panel" aria-label="Live JSON Preview">
+          <div class="preview-head">
+            <div class="preview-title"><svg class="icon"><use href="#i-code"></use></svg> Live JSON Preview</div>
+            <span class="badge accent">real time</span>
+          </div>
+          <pre class="json-preview" id="jsonPreview"></pre>
+          <div class="preview-foot">
+            <div class="preview-stat"><span>stream</span><strong id="streamStat">v18</strong></div>
+            <div class="preview-stat"><span>policy</span><strong>append</strong></div>
+            <div class="preview-stat"><span>digest</span><strong id="digestStat">sha256</strong></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="page" id="page-history">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Chain of custody</div>
+          <h1>History</h1>
+          <p class="page-copy">Timeline vertical de eventos aceptados. Cada tarjeta conserva el contexto mínimo para auditoría sin convertir la vista en una tabla operacional.</p>
+        </div>
+        <div class="meta-strip">
+          <span class="badge mono">unit: MX-2048-1190</span>
+          <span class="badge success">5 assertions</span>
+        </div>
+      </div>
+      <div class="timeline-shell" id="timeline"></div>
+    </section>
+
+    <section class="page" id="page-state">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Derived read model</div>
+          <h1>Current State</h1>
+          <p class="page-copy">Snapshot legible para operaciones clínicas y regulatorias. El estado se deriva del log inmutable; no se muestra JSON en esta vista.</p>
+        </div>
+        <div class="meta-strip">
+          <span class="badge success">consistent</span>
+          <span class="badge mono">as of global_position 8214605</span>
+        </div>
+      </div>
+
+      <div class="state-layout">
+        <div class="snapshot-grid">
+          <article class="snapshot-card">
+            <div class="snapshot-icon"><svg class="icon"><use href="#i-user"></use></svg></div>
+            <div><div class="snapshot-label">Current owner</div><div class="snapshot-value">Hospital Universitario San Ignacio</div></div>
+          </article>
+          <article class="snapshot-card">
+            <div class="snapshot-icon"><svg class="icon"><use href="#i-map"></use></svg></div>
+            <div><div class="snapshot-label">Current location</div><div class="snapshot-value">Bogotá DC / OR-7 sterile storage</div></div>
+          </article>
+          <article class="snapshot-card">
+            <div class="snapshot-icon"><svg class="icon"><use href="#i-shield"></use></svg></div>
+            <div><div class="snapshot-label">Current status</div><div class="snapshot-value">In custody</div></div>
+          </article>
+          <article class="snapshot-card">
+            <div class="snapshot-icon"><svg class="icon"><use href="#i-activity"></use></svg></div>
+            <div><div class="snapshot-label">Last event</div><div class="snapshot-value">RECEIVED</div></div>
+          </article>
+          <article class="snapshot-card">
+            <div class="snapshot-icon"><svg class="icon"><use href="#i-clock"></use></svg></div>
+            <div><div class="snapshot-label">Last update</div><div class="snapshot-value">2026-08-05 14:38 UTC</div></div>
+          </article>
+        </div>
+
+        <aside class="audit-panel">
+          <div class="section-title"><svg class="icon"><use href="#i-check"></use></svg> Snapshot integrity</div>
+          <div class="audit-list">
+            <div class="audit-item"><svg class="icon"><use href="#i-check"></use></svg><span>State projection replayed from stream version <span class="mono">18</span>.</span></div>
+            <div class="audit-item"><svg class="icon"><use href="#i-check"></use></svg><span>No rejected assertions in the active custody window.</span></div>
+            <div class="audit-item"><svg class="icon"><use href="#i-check"></use></svg><span>Evidence digest matches declared SHA-256.</span></div>
+            <div class="audit-item"><svg class="icon"><use href="#i-check"></use></svg><span>Regulatory access labels include INVIMA, FDA and hospital auditor roles.</span></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="page" id="page-lookup">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Forensic retrieval</div>
+          <h1>Claim Lookup</h1>
+          <p class="page-copy">Búsqueda puntual por claim_id para auditoría, soporte clínico o revisión regulatoria. El resultado se presenta como ficha técnica, no como JSON.</p>
+        </div>
+        <div class="meta-strip">
+          <span class="badge">read-only</span>
+          <span class="badge accent">forensic</span>
+        </div>
+      </div>
+
+      <div class="lookup-shell">
+        <div class="search-box">
+          <div class="section-title"><svg class="icon"><use href="#i-search"></use></svg> Search claim</div>
+          <p class="page-copy" style="margin-top:8px;">Ingresa un identificador exacto para resolver la aserción, su posición de stream y la evidencia asociada.</p>
+          <div class="search-input-wrap">
+            <input class="mono" id="lookupInput" value="clm_018fb6b2-47a6-7e18-91e1-3a6dd8fb3a21" aria-label="claim_id" />
+            <button class="btn primary" id="lookupButton" type="button"><svg class="icon"><use href="#i-search"></use></svg> Lookup</button>
+          </div>
+          <div class="inline-row" style="margin-top:14px;">
+            <span class="chip mono">exact match</span>
+            <span class="chip">auditor-visible</span>
+            <span class="chip">no mutation</span>
+          </div>
+        </div>
+
+        <article class="technical-card" id="lookupResult"></article>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+  const sampleEvents = [
+    {
+      event: "MANUFACTURED",
+      actor: "Andean Medical Manufacturing",
+      date: "2026-08-01 09:12 UTC",
+      claim_id: "clm_018fb24d-086e-7e47-87a2-244df6a916af",
+      stream_version: 14,
+      global_position: 8214560,
+      evidence: "batch-release-2048.pdf"
+    },
+    {
+      event: "QC_RELEASED",
+      actor: "Quality Assurance Unit",
+      date: "2026-08-02 16:44 UTC",
+      claim_id: "clm_018fb31c-2a10-70d4-a923-9b53730a122e",
+      stream_version: 15,
+      global_position: 8214579,
+      evidence: "qc-report-sterility.xml"
+    },
+    {
+      event: "DISPATCHED",
+      actor: "Cold Chain Distributor SAS",
+      date: "2026-08-03 11:05 UTC",
+      claim_id: "clm_018fb42f-88ad-7471-b8e0-5db993a0fe22",
+      stream_version: 16,
+      global_position: 8214591,
+      evidence: "dispatch-manifest-77.pdf"
+    },
+    {
+      event: "IN_TRANSIT_SCAN",
+      actor: "Airport Bonded Warehouse",
+      date: "2026-08-04 03:21 UTC",
+      claim_id: "clm_018fb51a-3ffe-7e56-a12d-a72a9165b0a3",
+      stream_version: 17,
+      global_position: 8214598,
+      evidence: "temperature-log-1190.csv"
+    },
+    {
+      event: "RECEIVED",
+      actor: "Hospital Universitario San Ignacio",
+      date: "2026-08-05 14:38 UTC",
+      claim_id: "clm_018fb6b2-47a6-7e18-91e1-3a6dd8fb3a21",
+      stream_version: 18,
+      global_position: 8214605,
+      evidence: "receiving-slip-1190.pdf"
+    }
+  ];
+
+  function icon(id) {
+    return '<svg class="icon"><use href="#' + id + '"></use></svg>';
+  }
+
+  function randomClaimId() {
+    const hex = "0123456789abcdef";
+    const groups = [8, 4, 4, 4, 12].map(length => Array.from({ length }, () => hex[Math.floor(Math.random() * hex.length)]).join(""));
+    return "clm_" + groups.join("-");
+  }
+
+  function localDatetimeValue() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  }
+
+  function currentPayload() {
+    return {
+      claim_id: $("#claimId").value.trim(),
+      unit_id: $("#unitId").value.trim(),
+      event_type: $("#eventType").value,
+      occurred_at: new Date($("#occurredAt").value || Date.now()).toISOString(),
+      provenance: {
+        actor_id: $("#actorId").value.trim(),
+        adapter_id: $("#adapterId").value.trim(),
+        organization: $("#organization").value.trim(),
+        trust_level: $("#trustLevel").value,
+        evidence: [
+          {
+            uri: $("#evidenceUri").value.trim(),
+            sha256: $("#sha256").value.trim()
+          }
+        ]
+      },
+      payload: {
+        device_class: $("#deviceClass").value,
+        assurance_level: $("#severity").value,
+        attributes: [
+          { key: "current_owner", value: $("#owner").value.trim() },
+          { key: "current_location", value: $("#location").value.trim() },
+          { key: "current_status", value: $("#status").value },
+          { key: "lot_number", value: $("#lot").value.trim() },
+          { key: "notes", value: $("#notes").value.trim() }
+        ]
+      }
+    };
+  }
+
+  function updatePreview() {
+    const payload = currentPayload();
+    $("#jsonPreview").textContent = JSON.stringify(payload, null, 2);
+    $("#streamStat").textContent = "v" + (payload.event_type === "RECALLED" ? "19" : "18");
+    $("#digestStat").textContent = payload.provenance.evidence[0].sha256.slice(0, 8) + "...";
+  }
+
+  function renderTimeline() {
+    $("#timeline").innerHTML = sampleEvents.map(item => {
+      const raw = {
+        claim_id: item.claim_id,
+        event_type: item.event,
+        actor: item.actor,
+        occurred_at: item.date,
+        stream_version: item.stream_version,
+        global_position: item.global_position,
+        evidence: item.evidence
+      };
+
+      return '<article class="event-card">' +
+        '<div class="event-head">' +
+          '<div><div class="event-name">' + icon("i-lock") + item.event + '</div><div class="hint" style="margin-top:6px;">Actor: ' + item.actor + '</div></div>' +
+          '<div class="event-date">' + item.date + '</div>' +
+        '</div>' +
+        '<div class="event-grid">' +
+          '<div class="fact"><div class="fact-label">claim_id</div><div class="fact-value mono">' + item.claim_id + '</div></div>' +
+          '<div class="fact"><div class="fact-label">stream_version</div><div class="fact-value mono">' + item.stream_version + '</div></div>' +
+          '<div class="fact"><div class="fact-label">global_position</div><div class="fact-value mono">' + item.global_position + '</div></div>' +
+        '</div>' +
+        '<div class="event-actions">' +
+          '<div class="inline-row"><span class="badge success">accepted</span><span class="chip mono">sha256 anchored</span></div>' +
+          '<button class="btn ghost json-toggle" type="button">Ver JSON</button>' +
+        '</div>' +
+        '<div class="json-drawer"><pre>' + JSON.stringify(raw, null, 2) + '</pre></div>' +
+      '</article>';
+    }).join("");
+
+    $$(".json-toggle", $("#timeline")).forEach(button => {
+      button.addEventListener("click", () => {
+        const drawer = button.closest(".event-card").querySelector(".json-drawer");
+        drawer.classList.toggle("open");
+        button.textContent = drawer.classList.contains("open") ? "Ocultar JSON" : "Ver JSON";
+      });
+    });
+  }
+
+  function renderLookup() {
+    const claim = $("#lookupInput").value.trim() || sampleEvents[4].claim_id;
+    const match = sampleEvents.find(item => item.claim_id === claim) || sampleEvents[4];
+    $("#lookupResult").innerHTML =
+      '<div class="technical-head">' +
+        '<div><div class="technical-title">' + match.event + '</div><div class="uuid">' + match.claim_id + '</div></div>' +
+        '<span class="badge success">verified</span>' +
+      '</div>' +
+      '<div class="technical-body">' +
+        '<div class="tech-row"><div class="fact-label">Actor</div><div class="fact-value">' + match.actor + '</div></div>' +
+        '<div class="tech-row"><div class="fact-label">Fecha</div><div class="fact-value">' + match.date + '</div></div>' +
+        '<div class="tech-row"><div class="fact-label">Unit</div><div class="fact-value mono">udi_di:00812345678901/serial:MX-2048-1190</div></div>' +
+        '<div class="tech-row"><div class="fact-label">Evidence</div><div class="fact-value mono">' + match.evidence + '</div></div>' +
+        '<div class="tech-row"><div class="fact-label">stream_version</div><div class="fact-value mono">' + match.stream_version + '</div></div>' +
+        '<div class="tech-row"><div class="fact-label">global_position</div><div class="fact-value mono">' + match.global_position + '</div></div>' +
+        '<div class="tech-row"><div class="fact-label">Custody status</div><div class="fact-value">In custody</div></div>' +
+        '<div class="tech-row"><div class="fact-label">Integrity</div><div class="fact-value">Hash anchored, no supersession</div></div>' +
+      '</div>';
+  }
+
+  function switchPage(target) {
+    $$(".nav-button").forEach(button => button.classList.toggle("active", button.dataset.pageTarget === target));
+    $$(".page").forEach(page => page.classList.toggle("active", page.id === "page-" + target));
+    const label = $(".nav-button.active").textContent.trim();
+    $("#activeCrumb").textContent = label;
+  }
+
+  $("#occurredAt").value = localDatetimeValue();
+  updatePreview();
+  renderTimeline();
+  renderLookup();
+
+  $$("input, select, textarea", $("#assertionForm")).forEach(control => {
+    control.addEventListener("input", updatePreview);
+    control.addEventListener("change", updatePreview);
+  });
+
+  $("#regenerateClaim").addEventListener("click", () => {
+    $("#claimId").value = randomClaimId();
+    updatePreview();
+  });
+
+  $$(".nav-button").forEach(button => {
+    button.addEventListener("click", () => switchPage(button.dataset.pageTarget));
+  });
+
+  $("#lookupButton").addEventListener("click", renderLookup);
+  $("#lookupInput").addEventListener("keydown", event => {
+    if (event.key === "Enter") renderLookup();
+  });
+})();
+</script>
+</body>
+</html>
