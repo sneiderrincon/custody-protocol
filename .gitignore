@@ -7,3 +7,12 @@ __pycache__/
 .ruff_cache/
 *.egg-info/
 .venv/
+
+# Variables de entorno locales. Pueden contener JWT_SECRET_KEY o tokens
+# emitidos con ella: nunca deben entrar al repositorio.
+.env
+.env.*
+!.env.example
+
+# Capturas y material de trabajo desechable.
+work/

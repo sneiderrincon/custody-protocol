@@ -1,3 +1,9 @@
 node_modules/
 dist/
 work/
+
+# Variables locales de Vite. Contienen VITE_DEMO_JWT, que es una credencial
+# real contra FastAPI: nunca debe entrar al repositorio.
+.env
+.env.*
+!.env.example
