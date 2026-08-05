@@ -11,10 +11,15 @@ docs/decisions/0010-jwt-authentication.md for why, and what identity
 provider this API expects tokens from. There is no login endpoint; Swagger
 UI's "Authorize" dialog accepts an already-issued bearer token directly
 (HTTPBearer), rather than presenting a username/password form.
+
+Diagnostics here are deliberately minimal: the bearer token and the shared
+signing secret are credentials, so neither is ever logged, at any level.
+Only the *class name* of a verification failure is emitted, at DEBUG.
 """
 
 from __future__ import annotations
 
+import logging
 import os
 from uuid import UUID
 
@@ -23,6 +28,8 @@ from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 ALGORITHM = "HS256"
+
+_logger = logging.getLogger(__name__)
 
 bearer_scheme = HTTPBearer(auto_error=True)
 _BEARER_CREDENTIALS = Security(bearer_scheme)
@@ -63,12 +70,15 @@ def get_current_actor_id(
     try:
         payload = jwt.decode(token, _secret_key(), algorithms=[ALGORITHM])
     except jwt.InvalidTokenError as exc:
+        _logger.debug("JWT rejected: %s", type(exc).__name__)
         raise _CREDENTIALS_ERROR from exc
 
     subject = payload.get("sub")
     if subject is None:
+        _logger.debug("JWT rejected: missing 'sub' claim")
         raise _CREDENTIALS_ERROR
     try:
         return UUID(str(subject))
     except ValueError as exc:
+        _logger.debug("JWT rejected: 'sub' claim is not a UUID")
         raise _CREDENTIALS_ERROR from exc
