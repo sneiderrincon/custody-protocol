@@ -73,6 +73,7 @@ def create_app() -> FastAPI:
             allow_headers=["Authorization", "Content-Type"],
         )
     app.include_router(custody_router)
+    app.include_router(catalog_router)
     app.include_router(health_router)
 
 

@@ -124,8 +124,10 @@ class KernelContainer:
         database_url = os.getenv("DATABASE_URL")
         self.event_store: CustodyEventStore
         self.rejection_log: RejectionLog
+        self.device_catalog: DeviceCatalogRepository
         
         self._session: Session | None = None
+        self.actor_registry: ActorRegistry = InMemoryActorRegistry()
         self.actor_registry.add(
             Actor(
             actor_id=UUID("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
@@ -144,18 +146,23 @@ class KernelContainer:
             self.rejection_log = _CommittingRejectionLog(
                 SqlAlchemyRejectionLog(session), session
             )
+            self.device_catalog = _CommittingDeviceCatalogRepository(
+                SqlAlchemyDeviceCatalogRepository(session), session
+            )
         else:
             self.event_store = InMemoryCustodyEventStore()
             self.rejection_log = InMemoryRejectionLog()
+            self.device_catalog = InMemoryDeviceCatalogRepository()
 
         self.declare_service = DeclareCustodyAssertionService(
             self.event_store,
             actor_registry=self.actor_registry,
             rejection_log=self.rejection_log,
         )
+        self.catalog_service = DeviceCatalogService(self.device_catalog)
 
     def ping(self) -> None:
-        """Verify the backself.actor_registry: ActorRegistry = InMemoryActorRegistry()ing store is reachable; raises if not.
+        """Verify the backing store is reachable; raises if not.
 
         Used by the health endpoint (api/routes/health.py) and by startup
         validation (api/main.py) for readiness checks. In-memory mode has no
